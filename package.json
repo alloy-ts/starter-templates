@@ -1,0 +1,15 @@
+{
+  "name": "@lib/module",
+  "version": "0.0.1",
+  "main": "src/main.ts",
+  "type": "module",
+  "scripts": {
+    "prepare": "node node_modules/@alloy-ts/config/scripts/codegen.mjs",
+    "start": "node src/main.ts",
+    "test": "node --test"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@alloy-ts/config": "git+https://github.com/alloy-ts/config.git#dist"
+  }
+}
