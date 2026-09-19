@@ -1,0 +1,92 @@
+name: Build & Test SEA
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Build the SEA executable (Linux)
+  # ---------------------------------------------------------------------------
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 26
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - name: Build SEA executable
+        run: |
+          node --version
+          # Regenerate dist/main.mjs (dist/ is gitignored, so it is never committed).
+          npm ci
+          npm run build
+          node --build-sea sea-config.json
+          chmod +x sea
+
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: sea-linux
+          path: sea
+
+  # ---------------------------------------------------------------------------
+  # Smoke-test the built executable on Linux
+  # ---------------------------------------------------------------------------
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download executable
+        uses: actions/download-artifact@v4
+        with:
+          name: sea-linux
+          path: .
+
+      - name: Smoke test
+        run: |
+          chmod +x sea
+          ./sea > /tmp/sea-out.txt
+          if ! grep -q "Hello, world!" /tmp/sea-out.txt; then
+            echo "SEA output mismatch:"
+            cat /tmp/sea-out.txt
+            exit 1
+          fi
+
+  # ---------------------------------------------------------------------------
+  # EXPERIMENTAL — macOS build + test (continue-on-error)
+  # ---------------------------------------------------------------------------
+  # macOS arm64 only (Node's officially supported/tested SEA target).
+  # Builds its own Mach-O binary and ad-hoc codesigns it before running.
+  test-macos:
+    runs-on: macos-15
+    needs: build
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 26
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - name: Build SEA executable (macOS arm64)
+        run: |
+          node --version
+          # Regenerate dist/main.mjs (dist/ is gitignored, so it is never committed).
+          npm ci
+          npm run build
+          node --build-sea sea-config.json
+          codesign --sign - ./sea   # ad-hoc signature (no identity) — required on macOS
+
+      - name: Smoke test
+        run: |
+          ./sea > /tmp/sea-out.txt
+          if ! grep -q "Hello, world!" /tmp/sea-out.txt; then
+            echo "SEA output mismatch:"
+            cat /tmp/sea-out.txt
+            exit 1
+          fi

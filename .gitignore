@@ -11,3 +11,8 @@ node_modules
 # log files
 logs
 *.log
+
+# Single Executable Application build artifacts
+sea
+sea-prep.blob
+sea-*.blob

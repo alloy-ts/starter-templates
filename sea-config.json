@@ -1,0 +1,5 @@
+{
+  "main": "dist/main.mjs",
+  "mainFormat": "module",
+  "output": "sea"
+}

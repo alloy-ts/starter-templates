@@ -1,0 +1,72 @@
+stages:
+  - build
+  - test
+
+# -----------------------------------------------------------------------------
+# Build the SEA executable (Linux, amd64)
+# -----------------------------------------------------------------------------
+build_sea:
+  stage: build
+  image: node:26-slim
+  script:
+    # Sanity-check the Node version (must be >= 25.5.0; we pin 26).
+    - node --version
+    # Regenerate dist/main.mjs (dist/ is gitignored, so it is never committed).
+    - npm ci
+    - npm run build
+    # Build the SEA executable from sea-config.json.
+    - node --build-sea sea-config.json
+    - chmod +x sea
+  artifacts:
+    paths:
+      - sea
+    expire_in: 1 week
+
+# Optional linux/arm64 build (Debian/glibc). Uncomment to enable.
+# A separate job (not consumed by test_sea) keeps the amd64 test deterministic.
+# build_sea_arm64:
+#   stage: build
+#   image: node:26-slim
+#   variables:
+#     TARGETARCH: arm64
+#   script:
+#     - node --version
+#     - node --build-sea sea-config.json
+#     - chmod +x sea
+#   artifacts:
+#     paths:
+#       - sea
+#     expire_in: 1 week
+
+# -----------------------------------------------------------------------------
+# Smoke-test the built executable on Linux
+# -----------------------------------------------------------------------------
+test_sea:
+  stage: test
+  image: node:26-slim
+  needs:
+    - build_sea
+  script:
+    - ./sea > /tmp/sea-out.txt
+    - grep -q "Hello, world!" /tmp/sea-out.txt || { echo "SEA output mismatch:"; cat /tmp/sea-out.txt; exit 1; }
+
+# -----------------------------------------------------------------------------
+# EXPERIMENTAL — macOS build + test (allow_failure)
+# -----------------------------------------------------------------------------
+# Node officially supports/tests SEA only on macOS arm64 (macos-14 / macos-15).
+# Requires an ad-hoc codesign before running. A Linux-built artifact is NOT
+# usable here, so we build locally on the macOS runner and run the same test.
+build_test_sea_macos:
+  stage: test
+  tags:
+    - saas-macos-medium-m1   # GitLab SaaS macOS arm64 runner (macOS 14/15)
+  allow_failure: true
+  script:
+    - node --version
+    # Regenerate dist/main.mjs (dist/ is gitignored, so it is never committed).
+    - npm ci
+    - npm run build
+    - node --build-sea sea-config.json
+    - codesign --sign - ./sea   # ad-hoc signature (no identity) — required on macOS
+    - ./sea > /tmp/sea-out.txt
+    - grep -q "Hello, world!" /tmp/sea-out.txt || { echo "SEA output mismatch:"; cat /tmp/sea-out.txt; exit 1; }
