@@ -5,13 +5,25 @@ export default definePackageConfig({
   version: "0.0.1",
   type: "module",
   main: "src/main.ts",
+  exports: {
+    ".": "./dist/main.mjs",
+    "./package.json": "./package.json",
+  },
+  files: ["dist"],
   scripts: {
     prepare: "node node_modules/@alloy-ts/config/scripts/codegen.mjs",
+    build: "tsdown",
+    dev: "tsdown --watch",
     start: "node src/main.ts",
     test: "node --test",
   },
   dependencies: {},
   devDependencies: {
-    "@alloy-ts/config": "git+https://github.com/alloy-ts/config.git#dist"
-  }
+    "@alloy-ts/config": "git+https://github.com/alloy-ts/config.git#dist",
+    "@types/node": "^26.6.2",
+    tsdown: "^0.23.0",
+  },
+  peerDependencies: {
+    typescript: "^7.0.2",
+  },
 });
