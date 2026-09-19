@@ -10,6 +10,10 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@alloy-ts/config": "git+https://github.com/alloy-ts/config.git#dist"
+    "@alloy-ts/config": "git+https://github.com/alloy-ts/config.git#dist",
+    "@types/node": "^26.6.2"
+  },
+  "peerDependencies": {
+    "typescript": "^7.0.2"
   }
 }

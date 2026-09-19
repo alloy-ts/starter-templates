@@ -2,7 +2,7 @@ import { definePackageConfig } from "@alloy-ts/config";
 
 export default definePackageConfig({
   name: "@lib/module",
-  version: "0.0.1",
+  version: "0.0.0",
   type: "module",
   main: "src/main.ts",
   scripts: {
@@ -12,6 +12,10 @@ export default definePackageConfig({
   },
   dependencies: {},
   devDependencies: {
-    "@alloy-ts/config": "git+https://github.com/alloy-ts/config.git#dist"
-  }
+    "@alloy-ts/config": "git+https://github.com/alloy-ts/config.git#dist",
+    "@types/node": "^26.6.2",
+  },
+  peerDependencies: {
+    typescript: "^7.0.2",
+  },
 });
