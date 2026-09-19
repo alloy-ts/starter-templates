@@ -1,0 +1,17 @@
+# Compiled output files and executables
+build
+out
+dist
+target
+
+# Dependencies
+vendor
+node_modules
+
+# Log files
+logs
+*.log
+
+# Database files
+*.db
+*.sqlite
