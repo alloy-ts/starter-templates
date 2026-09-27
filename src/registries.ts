@@ -1,4 +1,4 @@
-import { registry, type ZodType, object } from "zod";
+import { object, registry, type ZodType } from "zod";
 
 /** Metadata base for all registries. */
 export type MetadataBase = {
@@ -47,6 +47,80 @@ export const fieldsByGroupIdMap = new Map<
   Map<string, { schema: any; meta: MetadataConfigField }>
 >();
 export const registeredGroupsMap = new Map<string, { schema: any; meta: MetadataConfigGroup }>();
+
+/** Enhance registry method implementations for Map / WeakMap / Key string lookup */
+function wrapRegistry(reg: any, mapType: "field" | "group") {
+  const origGet = reg.get.bind(reg);
+  const origHas = reg.has.bind(reg);
+  const origRemove = reg.remove.bind(reg);
+  const origClear = reg.clear ? reg.clear.bind(reg) : undefined;
+
+  Object.defineProperty(reg, "size", {
+    get() {
+      if (mapType === "field") {
+        return registeredFieldsMap.size;
+      }
+      return registeredGroupsMap.size;
+    },
+    configurable: true,
+  });
+
+  reg.get = function (schemaOrKey: any) {
+    if (typeof schemaOrKey === "string") {
+      if (mapType === "field") {
+        const found = registeredFieldsMap.get(schemaOrKey);
+        if (found) return found;
+        for (const fieldMap of fieldsByGroupIdMap.values()) {
+          for (const [k, v] of fieldMap.entries()) {
+            if (k === schemaOrKey || v.meta.urn === schemaOrKey) return v.meta;
+          }
+        }
+        return undefined;
+      } else {
+        const found = registeredGroupsMap.get(schemaOrKey);
+        if (found) return found.meta;
+        for (const entry of registeredGroupsMap.values()) {
+          if (entry.meta.urn === schemaOrKey) return entry.meta;
+        }
+        return undefined;
+      }
+    }
+    return origGet(schemaOrKey);
+  };
+
+  reg.has = function (schemaOrKey: any) {
+    if (typeof schemaOrKey === "string") {
+      return reg.get(schemaOrKey) !== undefined;
+    }
+    return origHas(schemaOrKey);
+  };
+
+  reg.remove = function (schemaOrKey: any) {
+    if (typeof schemaOrKey === "string") {
+      if (mapType === "field") {
+        registeredFieldsMap.delete(schemaOrKey);
+      } else {
+        registeredGroupsMap.delete(schemaOrKey);
+      }
+    }
+    return origRemove(schemaOrKey);
+  };
+
+  if (origClear) {
+    reg.clear = function () {
+      if (mapType === "field") {
+        registeredFieldsMap.clear();
+        fieldsByGroupIdMap.clear();
+      } else {
+        registeredGroupsMap.clear();
+      }
+      return origClear();
+    };
+  }
+}
+
+wrapRegistry(configFieldRegistry, "field");
+wrapRegistry(configGroupRegistry, "group");
 
 // Make configFieldRegistry iterable
 (configFieldRegistry as any)[Symbol.iterator] = function* () {

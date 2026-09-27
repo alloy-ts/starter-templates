@@ -13,6 +13,23 @@ export type Scope = "local" | "user" | "system";
  */
 const scopeStores = new Map<string, Record<Scope, Record<string, any>>>();
 
+/**
+ * WeakMap association for Config instances to hold metadata & resolveMap.
+ */
+const configInstanceMetadata = new WeakMap<
+  Config,
+  {
+    groupId: string;
+    meta: MetadataConfigGroup;
+    resolveMap?: MetadataConfigGroup["resolveMap"];
+  }
+>();
+
+/**
+ * Resolver registry per groupId.
+ */
+export const resolver: Record<string, { resolveMap?: MetadataConfigGroup["resolveMap"] }> = {};
+
 function getOrCreateScopeStore(groupId: string): Record<Scope, Record<string, any>> {
   let store = scopeStores.get(groupId);
   if (!store) {
@@ -118,10 +135,18 @@ export function parseConfigKey(fullKey: string): {
 }
 
 /**
- * Creates a strongly-typed `defineConfig` function for a config group ID string.
+ * Creates a strongly-typed `defineConfig` function for a config group ID string or schema object.
  */
-export function createDefineConfig(groupId: string): (config: any) => any {
-  const { schema } = resolveGroup(groupId);
+export function createDefineConfig(schemaOrGroupId: any): (config: any) => any {
+  let schema: any;
+
+  if (typeof schemaOrGroupId === "string") {
+    schema = resolveGroup(schemaOrGroupId).schema;
+  } else if (schemaOrGroupId && typeof schemaOrGroupId.parse === "function") {
+    schema = schemaOrGroupId;
+  } else {
+    throw new Error("Invalid arguments for createDefineConfig");
+  }
 
   return function defineConfig(configValue: any): any {
     return schema.parse(configValue);
@@ -139,6 +164,10 @@ export class ConfigGroupResolver {
     const { meta, schema } = resolveGroup(groupIdentifier);
     this.groupMeta = meta;
     this.groupSchema = schema;
+
+    if (!resolver[meta.id]) {
+      resolver[meta.id] = { resolveMap: meta.resolveMap };
+    }
   }
 
   private isFieldValid(fieldKey: string): boolean {
@@ -200,12 +229,13 @@ export class ConfigGroupResolver {
  * Global Config class and instance constructor.
  */
 export class Config {
+  static resolver = resolver;
   static createDefine = createDefineConfig;
 
   static get(key: string, scope?: Scope): any {
     const { group, fieldKey } = parseConfigKey(key);
-    const resolver = new ConfigGroupResolver(group.meta.id);
-    return resolver.get(fieldKey, scope);
+    const groupResolver = new ConfigGroupResolver(group.meta.id);
+    return groupResolver.get(fieldKey, scope);
   }
 
   static set(key: string, value: any, scope: Scope = "local"): void {
@@ -213,22 +243,35 @@ export class Config {
     if (!fieldKey) {
       throw new Error(`Cannot set value on config group "${key}" without specifying a field key.`);
     }
-    const resolver = new ConfigGroupResolver(group.meta.id);
-    resolver.set(fieldKey, value, scope);
+    const groupResolver = new ConfigGroupResolver(group.meta.id);
+    groupResolver.set(fieldKey, value, scope);
   }
 
-  private resolver: ConfigGroupResolver;
+  private groupResolver: ConfigGroupResolver;
 
-  constructor(groupId: string) {
-    this.resolver = new ConfigGroupResolver(groupId);
+  constructor(groupId: string, resolveMap?: MetadataConfigGroup["resolveMap"]) {
+    this.groupResolver = new ConfigGroupResolver(groupId);
+    const meta = this.groupResolver.groupMeta;
+    if (resolveMap) {
+      meta.resolveMap = { ...meta.resolveMap, ...resolveMap };
+      const resolverEntry = resolver[meta.id];
+      if (resolverEntry) {
+        resolverEntry.resolveMap = meta.resolveMap;
+      }
+    }
+    configInstanceMetadata.set(this, {
+      groupId: meta.id,
+      meta,
+      resolveMap: meta.resolveMap,
+    });
   }
 
   get(key?: string, scope?: Scope): any {
-    return this.resolver.get(key, scope);
+    return this.groupResolver.get(key, scope);
   }
 
   set(key: string, value: any, scope: Scope = "local"): void {
-    this.resolver.set(key, value, scope);
+    this.groupResolver.set(key, value, scope);
   }
 }
 
