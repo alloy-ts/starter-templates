@@ -1,6 +1,9 @@
 import { expect, test } from "vite-plus/test";
-import { main } from "./main.ts";
+import { ObjectStore } from "../index.js";
 
-test("main returns Hello, world!", () => {
-  expect(main()).toBe("Hello, world!");
+test("ObjectStore memory test in typescript", async () => {
+  const store = ObjectStore.memory();
+  await store.put("ts/test.txt", Buffer.from("ts content"));
+  const data = await store.getBytes("ts/test.txt");
+  expect(data.toString()).toBe("ts content");
 });
