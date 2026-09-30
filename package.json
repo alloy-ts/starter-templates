@@ -1,5 +1,5 @@
 {
-  "name": "@lib/module",
+  "name": "@lib/diesel-orm",
   "version": "0.0.0",
   "files": [
     "dist",
@@ -37,9 +37,9 @@
     "typescript": "^7.0.2"
   },
   "overrides": {
-    "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0-rc.1",
     "@emnapi/core": "2.0.0-alpha.5",
-    "@emnapi/runtime": "2.0.0-alpha.5"
+    "@emnapi/runtime": "2.0.0-alpha.5",
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0-rc.1"
   },
   "napi": {
     "binaryName": "my-addon",
