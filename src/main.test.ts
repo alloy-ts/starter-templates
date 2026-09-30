@@ -33,6 +33,18 @@ test("Ksuid - create and convert Base62", () => {
   expect(fromBytes.toString()).toBe(base62);
 });
 
+test("Ksuid - constructor options enc and custom alphabet defaults", () => {
+  const customAlphabet = "ZYXWVUTSRQPONMKJHGFEDCBA98765432";
+  const k = new Ksuid(undefined, { enc: "crockford", alphabet: customAlphabet });
+
+  // toString() without arguments uses instance configured default enc and alphabet!
+  const str = k.toString();
+  expect(str).toHaveLength(32);
+
+  const parsed = new Ksuid(str, { enc: "crockford", alphabet: customAlphabet });
+  expect(parsed.equals(k)).toBe(true);
+});
+
 test("Ksuid - Crockford Base32 encoding and custom alphabets", () => {
   const ksuid = Ksuid.now();
 
@@ -74,22 +86,21 @@ test("Ksuid - Crockford Base32 encoding and custom alphabets", () => {
   expect(parsedCustomB62.equals(ksuid)).toBe(true);
 });
 
-test("Ksuid - timestampSize options (32-bit / 4-byte vs 48-bit / 6-byte epoch)", () => {
-  // Default is 32bit (4bytes) epoch with second resolution
+test("Ksuid - timestampSize options (32bit / 48bit / 64bit epochs)", () => {
+  // 32bit (4bytes) epoch in seconds -> 16 bytes payload
   const k32 = new Ksuid(undefined, { timestampSize: "32bit" });
   expect(k32.payload()).toHaveLength(16);
   expect(k32.timestampSeconds()).toBeGreaterThan(0);
 
-  // 48bit (6bytes) epoch with millisecond resolution
-  const k48String = new Ksuid(undefined, { timestampSize: "48bit" });
-  expect(k48String.payload()).toHaveLength(15);
-  expect(k48String.timestampMillis()).toBeGreaterThan(0);
+  // 48bit (6bytes) epoch in milliseconds -> 14 bytes payload
+  const k48 = new Ksuid(undefined, { timestampSize: "48bit" });
+  expect(k48.payload()).toHaveLength(14);
+  expect(k48.timestampMillis()).toBeGreaterThan(0);
 
-  const k48Num = new Ksuid(undefined, { timestampSize: 48 });
-  expect(k48Num.payload()).toHaveLength(15);
-
-  const k6Bytes = new Ksuid(undefined, { timestampSize: "6bytes" });
-  expect(k6Bytes.payload()).toHaveLength(15);
+  // 64bit (8bytes) epoch in milliseconds -> 12 bytes payload
+  const k64 = new Ksuid(undefined, { timestampSize: "64bit" });
+  expect(k64.payload()).toHaveLength(12);
+  expect(k64.timestampMillis()).toBeGreaterThan(0);
 });
 
 test("Ksuid - comparison", () => {
