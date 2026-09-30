@@ -1,5 +1,5 @@
 [package]
-name = "my-addon-native"
+name = "bson-native"
 version = "0.1.0"
 edition = "2024"
 
@@ -7,8 +7,12 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
-napi = "3"
+bson = { version = "3.1.0", features = ["serde_json-1", "chrono-0_4", "uuid-1", "serde"] }
+chrono = "0.4"
+napi = { version = "3", features = ["serde-json"] }
 napi-derive = "3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 
 [build-dependencies]
 napi-build = "2"
