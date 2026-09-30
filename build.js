@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { NapiCli } from "@napi-rs/cli";
 
 async function run() {
@@ -19,7 +21,17 @@ async function run() {
     useNapiCross,
     crossCompile,
     useCross,
+    outputDir: "artifacts",
   });
+
+  // Copy artifacts to root
+  const artifactsDir = path.resolve(process.cwd(), "artifacts");
+  if (fs.existsSync(artifactsDir)) {
+    const files = fs.readdirSync(artifactsDir);
+    for (const file of files) {
+      fs.copyFileSync(path.join(artifactsDir, file), path.join(process.cwd(), file));
+    }
+  }
 }
 
 void run().catch((err) => {
