@@ -19,7 +19,16 @@ async function run() {
     useNapiCross,
     crossCompile,
     useCross,
+    outputDir: "artifacts",
   });
+
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+  if (fs.existsSync("artifacts")) {
+    for (const file of fs.readdirSync("artifacts")) {
+      fs.copyFileSync(path.join("artifacts", file), path.join(".", file));
+    }
+  }
 }
 
 void run().catch((err) => {
