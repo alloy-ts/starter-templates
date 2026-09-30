@@ -1,7 +1,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-void test("ksuid native addon works with Crockford Base32 and custom alphabets in CJS", async () => {
+void test("ksuid native addon works with Crockford Base32, custom alphabets, and timestampSize in CJS", async () => {
   const { Ksuid, KsuidMs } = await import("./index.js");
 
   const k1 = Ksuid.fromSeconds(1_555_555_555);
@@ -27,6 +27,13 @@ void test("ksuid native addon works with Crockford Base32 and custom alphabets i
 
   const parsedCustom = Ksuid.fromCrockfordBase32(customC32, customAlphabet);
   assert.equal(parsedCustom.equals(k1), true);
+
+  // timestampSize option
+  const k32 = new Ksuid(undefined, { timestampSize: "32bit" });
+  assert.equal(k32.payload().length, 16);
+
+  const k48 = new Ksuid(undefined, { timestampSize: "48bit" });
+  assert.equal(k48.payload().length, 15);
 
   const kms = KsuidMs.now();
   const kmsC32 = kms.toCrockfordBase32();

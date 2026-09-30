@@ -74,6 +74,24 @@ test("Ksuid - Crockford Base32 encoding and custom alphabets", () => {
   expect(parsedCustomB62.equals(ksuid)).toBe(true);
 });
 
+test("Ksuid - timestampSize options (32-bit / 4-byte vs 48-bit / 6-byte epoch)", () => {
+  // Default is 32bit (4bytes) epoch with second resolution
+  const k32 = new Ksuid(undefined, { timestampSize: "32bit" });
+  expect(k32.payload()).toHaveLength(16);
+  expect(k32.timestampSeconds()).toBeGreaterThan(0);
+
+  // 48bit (6bytes) epoch with millisecond resolution
+  const k48String = new Ksuid(undefined, { timestampSize: "48bit" });
+  expect(k48String.payload()).toHaveLength(15);
+  expect(k48String.timestampMillis()).toBeGreaterThan(0);
+
+  const k48Num = new Ksuid(undefined, { timestampSize: 48 });
+  expect(k48Num.payload()).toHaveLength(15);
+
+  const k6Bytes = new Ksuid(undefined, { timestampSize: "6bytes" });
+  expect(k6Bytes.payload()).toHaveLength(15);
+});
+
 test("Ksuid - comparison", () => {
   const ksuid1 = Ksuid.fromSeconds(1_555_555_555);
   const ksuid2 = Ksuid.fromSeconds(1_777_777_777);
@@ -108,4 +126,7 @@ test("generateKsuid and generateKsuidMs with options", () => {
 
   const k2 = generateKsuidMs(undefined, "crockford");
   expect(k2).toHaveLength(32);
+
+  const k3 = generateKsuid(undefined, { timestampSize: "48bit", enc: "crockford" });
+  expect(k3).toHaveLength(32);
 });

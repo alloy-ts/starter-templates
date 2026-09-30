@@ -160,16 +160,16 @@ pub fn decode_crockford(input: &str, custom_alphabet: Option<&str>) -> Result<[u
 
   let mut bytes = [0u8; 20];
   for i in 0..32 {
-    let val = values[i];
+    let val = values[i] as u16;
     let bit_offset = i * 5;
     let byte_idx = bit_offset / 8;
     let bit_in_byte = bit_offset % 8;
 
     if bit_in_byte <= 3 {
-      bytes[byte_idx] |= val << (3 - bit_in_byte);
+      bytes[byte_idx] |= (val << (3 - bit_in_byte)) as u8;
     } else {
-      bytes[byte_idx] |= val >> (bit_in_byte - 3);
-      bytes[byte_idx + 1] |= (val << (11 - bit_in_byte)) & 0xFF;
+      bytes[byte_idx] |= (val >> (bit_in_byte - 3)) as u8;
+      bytes[byte_idx + 1] |= ((val << (11 - bit_in_byte)) & 0xFF) as u8;
     }
   }
 
@@ -177,25 +177,49 @@ pub fn decode_crockford(input: &str, custom_alphabet: Option<&str>) -> Result<[u
 }
 
 #[napi(object)]
-pub struct EncodingOptions {
+pub struct KsuidOptions {
   pub enc: Option<String>,
   pub alphabet: Option<String>,
+  pub timestamp_size: Option<Either<String, i32>>,
 }
 
-fn parse_encoding_options(options: Option<Either<String, EncodingOptions>>) -> (String, Option<String>) {
-  match options {
-    Some(Either::A(enc_str)) => (enc_str.to_lowercase(), None),
-    Some(Either::B(opts)) => {
-      let enc = opts.enc.unwrap_or_else(|| "base62".to_string()).to_lowercase();
-      (enc, opts.alphabet)
+pub fn is_48bit_timestamp(size_opt: Option<&&Either<String, i32>>) -> bool {
+  match size_opt {
+    Some(Either::A(s)) => {
+      let l = s.to_lowercase();
+      l == "48"
+        || l == "48bit"
+        || l == "48-bit"
+        || l == "48bits"
+        || l == "6"
+        || l == "6byte"
+        || l == "6bytes"
+        || l == "6-byte"
+        || l == "ms"
+        || l == "millisecond"
+        || l == "milliseconds"
     }
-    None => ("base62".to_string(), None),
+    Some(Either::B(n)) => *n == 48 || *n == 6,
+    None => false,
+  }
+}
+
+fn parse_encoding_options(options: Option<&Either<String, KsuidOptions>>) -> (String, Option<String>, Option<&Either<String, i32>>) {
+  match options {
+    Some(Either::A(enc_str)) => (enc_str.to_lowercase(), None, None),
+    Some(Either::B(opts)) => {
+      let enc = opts.enc.as_deref().unwrap_or("base62").to_lowercase();
+      (enc, opts.alphabet.clone(), opts.timestamp_size.as_ref())
+    }
+    None => ("base62".to_string(), None, None),
   }
 }
 
 #[napi]
 pub struct Ksuid {
   inner: svix_ksuid::Ksuid,
+  is_ms: bool,
+  inner_ms: Option<svix_ksuid::KsuidMs>,
 }
 
 #[napi]
@@ -203,14 +227,30 @@ impl Ksuid {
   #[napi(constructor)]
   pub fn new(
     input: Option<Either<String, Uint8Array>>,
-    options: Option<Either<String, EncodingOptions>>,
+    options: Option<Either<String, KsuidOptions>>,
   ) -> Result<Self> {
+    let (_, _, ts_size) = parse_encoding_options(options.as_ref());
+    let use_48bit = is_48bit_timestamp(ts_size.as_ref());
+
     match input {
-      None => Ok(Ksuid {
-        inner: svix_ksuid::Ksuid::now(None),
-      }),
+      None => {
+        if use_48bit {
+          let inner_ms = svix_ksuid::KsuidMs::now(None);
+          Ok(Ksuid {
+            inner: svix_ksuid::Ksuid::from_bytes(*inner_ms.bytes()),
+            is_ms: true,
+            inner_ms: Some(inner_ms),
+          })
+        } else {
+          Ok(Ksuid {
+            inner: svix_ksuid::Ksuid::now(None),
+            is_ms: false,
+            inner_ms: None,
+          })
+        }
+      }
       Some(Either::A(s)) => Self::from_str(s, options),
-      Some(Either::B(b)) => Self::from_bytes(b),
+      Some(Either::B(b)) => Self::from_bytes_with_options(b, options),
     }
   }
 
@@ -226,7 +266,11 @@ impl Ksuid {
       }
     }
     let inner = svix_ksuid::Ksuid::now(payload_ref);
-    Ok(Ksuid { inner })
+    Ok(Ksuid {
+      inner,
+      is_ms: false,
+      inner_ms: None,
+    })
   }
 
   #[napi(factory)]
@@ -241,7 +285,11 @@ impl Ksuid {
       }
     }
     let inner = svix_ksuid::Ksuid::from_seconds(timestamp_seconds, payload_ref);
-    Ok(Ksuid { inner })
+    Ok(Ksuid {
+      inner,
+      is_ms: false,
+      inner_ms: None,
+    })
   }
 
   #[napi(factory)]
@@ -249,6 +297,8 @@ impl Ksuid {
     let bytes = decode_base62(&base62, alphabet.as_deref())?;
     Ok(Ksuid {
       inner: svix_ksuid::Ksuid::from_bytes(bytes),
+      is_ms: false,
+      inner_ms: None,
     })
   }
 
@@ -257,6 +307,8 @@ impl Ksuid {
     let bytes = decode_crockford(&base32, alphabet.as_deref())?;
     Ok(Ksuid {
       inner: svix_ksuid::Ksuid::from_bytes(bytes),
+      is_ms: false,
+      inner_ms: None,
     })
   }
 
@@ -268,18 +320,42 @@ impl Ksuid {
   #[napi(factory)]
   pub fn from_str(
     encoded: String,
-    options: Option<Either<String, EncodingOptions>>,
+    options: Option<Either<String, KsuidOptions>>,
   ) -> Result<Self> {
-    let (enc, alphabet) = parse_encoding_options(options);
-    if enc == "crockford" || enc == "base32" || enc == "crockfordbase32" || enc == "crockford_base32" {
-      Self::from_crockford_base32(encoded, alphabet)
+    let (enc, alphabet, ts_size) = parse_encoding_options(options.as_ref());
+    let use_48bit = is_48bit_timestamp(ts_size.as_ref());
+
+    let bytes = if enc == "crockford" || enc == "base32" || enc == "crockfordbase32" || enc == "crockford_base32" {
+      decode_crockford(&encoded, alphabet.as_deref())?
     } else {
-      Self::from_base62(encoded, alphabet)
+      decode_base62(&encoded, alphabet.as_deref())?
+    };
+
+    if use_48bit {
+      let inner_ms = svix_ksuid::KsuidMs::from_bytes(bytes);
+      Ok(Ksuid {
+        inner: svix_ksuid::Ksuid::from_bytes(bytes),
+        is_ms: true,
+        inner_ms: Some(inner_ms),
+      })
+    } else {
+      Ok(Ksuid {
+        inner: svix_ksuid::Ksuid::from_bytes(bytes),
+        is_ms: false,
+        inner_ms: None,
+      })
     }
   }
 
   #[napi(factory)]
   pub fn from_bytes(bytes: Uint8Array) -> Result<Self> {
+    Self::from_bytes_with_options(bytes, None)
+  }
+
+  pub fn from_bytes_with_options(
+    bytes: Uint8Array,
+    options: Option<Either<String, KsuidOptions>>,
+  ) -> Result<Self> {
     if bytes.len() != 20 {
       return Err(Error::new(
         Status::InvalidArg,
@@ -288,9 +364,22 @@ impl Ksuid {
     }
     let mut arr = [0u8; 20];
     arr.copy_from_slice(&bytes);
-    Ok(Ksuid {
-      inner: svix_ksuid::Ksuid::from_bytes(arr),
-    })
+
+    let (_, _, ts_size) = parse_encoding_options(options.as_ref());
+    if is_48bit_timestamp(ts_size.as_ref()) {
+      let inner_ms = svix_ksuid::KsuidMs::from_bytes(arr);
+      Ok(Ksuid {
+        inner: svix_ksuid::Ksuid::from_bytes(arr),
+        is_ms: true,
+        inner_ms: Some(inner_ms),
+      })
+    } else {
+      Ok(Ksuid {
+        inner: svix_ksuid::Ksuid::from_bytes(arr),
+        is_ms: false,
+        inner_ms: None,
+      })
+    }
   }
 
   #[napi]
@@ -309,8 +398,8 @@ impl Ksuid {
   }
 
   #[napi]
-  pub fn to_string(&self, options: Option<Either<String, EncodingOptions>>) -> Result<String> {
-    let (enc, alphabet) = parse_encoding_options(options);
+  pub fn to_string(&self, options: Option<Either<String, KsuidOptions>>) -> Result<String> {
+    let (enc, alphabet, _) = parse_encoding_options(options.as_ref());
     if enc == "crockford" || enc == "base32" || enc == "crockfordbase32" || enc == "crockford_base32" {
       self.to_crockford_base32(alphabet)
     } else {
@@ -325,12 +414,26 @@ impl Ksuid {
 
   #[napi]
   pub fn payload(&self) -> Uint8Array {
+    if self.is_ms {
+      if let Some(ref ms) = self.inner_ms {
+        return Uint8Array::from(ms.payload());
+      }
+    }
     Uint8Array::from(self.inner.payload())
   }
 
   #[napi]
   pub fn timestamp_seconds(&self) -> i64 {
     self.inner.timestamp_seconds()
+  }
+
+  #[napi]
+  pub fn timestamp_millis(&self) -> i64 {
+    if let Some(ref ms) = self.inner_ms {
+      ms.timestamp_millis()
+    } else {
+      svix_ksuid::KsuidMs::from_bytes(*self.inner.bytes()).timestamp_millis()
+    }
   }
 
   #[napi]
@@ -358,7 +461,7 @@ impl KsuidMs {
   #[napi(constructor)]
   pub fn new(
     input: Option<Either<String, Uint8Array>>,
-    options: Option<Either<String, EncodingOptions>>,
+    options: Option<Either<String, KsuidOptions>>,
   ) -> Result<Self> {
     match input {
       None => Ok(KsuidMs {
@@ -423,9 +526,9 @@ impl KsuidMs {
   #[napi(factory)]
   pub fn from_str(
     encoded: String,
-    options: Option<Either<String, EncodingOptions>>,
+    options: Option<Either<String, KsuidOptions>>,
   ) -> Result<Self> {
-    let (enc, alphabet) = parse_encoding_options(options);
+    let (enc, alphabet, _) = parse_encoding_options(options.as_ref());
     if enc == "crockford" || enc == "base32" || enc == "crockfordbase32" || enc == "crockford_base32" {
       Self::from_crockford_base32(encoded, alphabet)
     } else {
@@ -464,8 +567,8 @@ impl KsuidMs {
   }
 
   #[napi]
-  pub fn to_string(&self, options: Option<Either<String, EncodingOptions>>) -> Result<String> {
-    let (enc, alphabet) = parse_encoding_options(options);
+  pub fn to_string(&self, options: Option<Either<String, KsuidOptions>>) -> Result<String> {
+    let (enc, alphabet, _) = parse_encoding_options(options.as_ref());
     if enc == "crockford" || enc == "base32" || enc == "crockfordbase32" || enc == "crockford_base32" {
       self.to_crockford_base32(alphabet)
     } else {
