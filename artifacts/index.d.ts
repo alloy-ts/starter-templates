@@ -10,17 +10,24 @@
 export declare const __napiBindingTarget: "native" | "wasm32-wasi" | "wasm32-wasip1";
 
 export declare class Ksuid {
-  constructor(input?: string | Uint8Array | undefined | null);
+  constructor(
+    input?: string | Uint8Array | undefined | null,
+    options?: string | EncodingOptions | undefined | null,
+  );
   static now(payload?: Uint8Array | undefined | null): Ksuid;
   static fromSeconds(
     timestampSeconds?: number | undefined | null,
     payload?: Uint8Array | undefined | null,
   ): Ksuid;
-  static fromBase62(base62: string): Ksuid;
-  static fromStr(base62: string): Ksuid;
+  static fromBase62(base62: string, alphabet?: string | undefined | null): Ksuid;
+  static fromCrockfordBase32(base32: string, alphabet?: string | undefined | null): Ksuid;
+  static fromBase32(base32: string, alphabet?: string | undefined | null): Ksuid;
+  static fromStr(encoded: string, options?: string | EncodingOptions | undefined | null): Ksuid;
   static fromBytes(bytes: Uint8Array): Ksuid;
-  toBase62(): string;
-  toString(): string;
+  toBase62(alphabet?: string | undefined | null): string;
+  toCrockfordBase32(alphabet?: string | undefined | null): string;
+  toBase32(alphabet?: string | undefined | null): string;
+  toString(options?: string | EncodingOptions | undefined | null): string;
   bytes(): Uint8Array;
   payload(): Uint8Array;
   timestampSeconds(): number;
@@ -29,20 +36,32 @@ export declare class Ksuid {
 }
 
 export declare class KsuidMs {
-  constructor(input?: string | Uint8Array | undefined | null);
+  constructor(
+    input?: string | Uint8Array | undefined | null,
+    options?: string | EncodingOptions | undefined | null,
+  );
   static now(payload?: Uint8Array | undefined | null): KsuidMs;
   static fromMillis(
     timestampMillis?: number | undefined | null,
     payload?: Uint8Array | undefined | null,
   ): KsuidMs;
-  static fromBase62(base62: string): KsuidMs;
-  static fromStr(base62: string): KsuidMs;
+  static fromBase62(base62: string, alphabet?: string | undefined | null): KsuidMs;
+  static fromCrockfordBase32(base32: string, alphabet?: string | undefined | null): KsuidMs;
+  static fromBase32(base32: string, alphabet?: string | undefined | null): KsuidMs;
+  static fromStr(encoded: string, options?: string | EncodingOptions | undefined | null): KsuidMs;
   static fromBytes(bytes: Uint8Array): KsuidMs;
-  toBase62(): string;
-  toString(): string;
+  toBase62(alphabet?: string | undefined | null): string;
+  toCrockfordBase32(alphabet?: string | undefined | null): string;
+  toBase32(alphabet?: string | undefined | null): string;
+  toString(options?: string | EncodingOptions | undefined | null): string;
   bytes(): Uint8Array;
   payload(): Uint8Array;
   timestampMillis(): number;
   compare(other: KsuidMs): number;
   equals(other: KsuidMs): boolean;
+}
+
+export interface EncodingOptions {
+  enc?: string;
+  alphabet?: string;
 }
