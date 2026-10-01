@@ -4,6 +4,7 @@ use svix_ksuid::KsuidLike;
 
 pub const STANDARD_BASE62_ALPHABET: &[u8; 62] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 pub const STANDARD_CROCKFORD_ALPHABET: &[u8; 32] = b"0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+pub const STANDARD_BASE36_ALPHABET: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TimestampMode {
@@ -73,6 +74,110 @@ pub fn read_48bit_ms(bytes: &[u8; 20]) -> i64 {
   let mut ms_bytes = [0u8; 8];
   ms_bytes[2..8].copy_from_slice(&bytes[0..6]);
   u64::from_be_bytes(ms_bytes) as i64
+}
+
+pub fn convert_base(
+  in_digits: &[u8],
+  in_base: u32,
+  out_base: u32,
+  out_len: usize,
+) -> Result<Vec<u8>> {
+  let mut out = vec![0u8; out_len];
+  let in_base_u64 = in_base as u64;
+  let out_base_u64 = out_base as u64;
+
+  for &digit in in_digits {
+    let mut carry = digit as u64;
+    for j in (0..out_len).rev() {
+      carry += out[j] as u64 * in_base_u64;
+      out[j] = (carry % out_base_u64) as u8;
+      carry /= out_base_u64;
+    }
+    if carry != 0 {
+      return Err(Error::new(
+        Status::InvalidArg,
+        "Value out of range for target base conversion".to_string(),
+      ));
+    }
+  }
+  Ok(out)
+}
+
+pub fn encode_base36(bytes: &[u8; 20], custom_alphabet: Option<&str>) -> Result<String> {
+  let alphabet_bytes = match custom_alphabet {
+    Some(a) => {
+      let b = a.as_bytes();
+      if b.len() != 36 {
+        return Err(Error::new(
+          Status::InvalidArg,
+          format!("Base36 alphabet must be exactly 36 characters, got {}", b.len()),
+        ));
+      }
+      b
+    }
+    None => STANDARD_BASE36_ALPHABET.as_slice(),
+  };
+
+  let digit_values = convert_base(bytes, 256, 36, 31)?;
+  let mut out = String::with_capacity(31);
+  for d in digit_values {
+    out.push(alphabet_bytes[d as usize] as char);
+  }
+  Ok(out)
+}
+
+pub fn decode_base36(input: &str, custom_alphabet: Option<&str>) -> Result<[u8; 20]> {
+  let clean: String = input.chars().filter(|&c| c != '-').collect();
+  if clean.len() != 31 {
+    return Err(Error::new(
+      Status::InvalidArg,
+      format!("Base36 string must be 31 characters, got {}", clean.len()),
+    ));
+  }
+
+  let mut digit_values = Vec::with_capacity(31);
+  if let Some(a) = custom_alphabet {
+    let a_bytes = a.as_bytes();
+    if a_bytes.len() != 36 {
+      return Err(Error::new(
+        Status::InvalidArg,
+        format!("Base36 alphabet must be exactly 36 characters, got {}", a_bytes.len()),
+      ));
+    }
+    for ch in clean.bytes() {
+      let ch_lower = (ch as char).to_ascii_lowercase() as u8;
+      let pos = a_bytes
+        .iter()
+        .position(|&b| b == ch || b == ch_lower)
+        .ok_or_else(|| {
+          Error::new(
+            Status::InvalidArg,
+            format!("Character '{}' not found in custom Base36 alphabet", ch as char),
+          )
+        })?;
+      digit_values.push(pos as u8);
+    }
+  } else {
+    for ch in clean.bytes() {
+      let val = match ch {
+        b'0'..=b'9' => ch - b'0',
+        b'a'..=b'z' => ch - b'a' + 10,
+        b'A'..=b'Z' => ch - b'A' + 10,
+        _ => {
+          return Err(Error::new(
+            Status::InvalidArg,
+            format!("Invalid Base36 character: '{}'", ch as char),
+          ));
+        }
+      };
+      digit_values.push(val);
+    }
+  }
+
+  let bytes_vec = convert_base(&digit_values, 36, 256, 20)?;
+  let mut bytes = [0u8; 20];
+  bytes.copy_from_slice(&bytes_vec);
+  Ok(bytes)
 }
 
 pub fn encode_base62(bytes: &[u8; 20], custom_alphabet: Option<&str>) -> Result<String> {
@@ -298,6 +403,8 @@ impl Ksuid {
       Some(Either::A(s)) => {
         let bytes = if enc == "crockford" || enc == "base32" || enc == "crockfordbase32" || enc == "crockford_base32" {
           decode_crockford(&s, alphabet.as_deref())?
+        } else if enc == "base36" {
+          decode_base36(&s, alphabet.as_deref())?
         } else {
           decode_base62(&s, alphabet.as_deref())?
         };
@@ -387,6 +494,17 @@ impl Ksuid {
   }
 
   #[napi(factory)]
+  pub fn from_base36(base36: String, alphabet: Option<String>) -> Result<Self> {
+    let bytes = decode_base36(&base36, alphabet.as_deref())?;
+    Ok(Ksuid {
+      bytes,
+      ts_mode: TimestampMode::Bit32,
+      default_enc: "base36".to_string(),
+      default_alphabet: alphabet,
+    })
+  }
+
+  #[napi(factory)]
   pub fn from_str(
     encoded: String,
     options: Option<Either<String, KsuidOptions>>,
@@ -394,6 +512,8 @@ impl Ksuid {
     let (enc, alphabet, mode) = parse_options_struct(options.as_ref(), TimestampMode::Bit32);
     let bytes = if enc == "crockford" || enc == "base32" || enc == "crockfordbase32" || enc == "crockford_base32" {
       decode_crockford(&encoded, alphabet.as_deref())?
+    } else if enc == "base36" {
+      decode_base36(&encoded, alphabet.as_deref())?
     } else {
       decode_base62(&encoded, alphabet.as_deref())?
     };
@@ -442,12 +562,20 @@ impl Ksuid {
   }
 
   #[napi]
+  pub fn to_base36(&self, alphabet: Option<String>) -> Result<String> {
+    let alpha = alphabet.as_deref().or(self.default_alphabet.as_deref());
+    encode_base36(&self.bytes, alpha)
+  }
+
+  #[napi]
   pub fn to_string(&self, options: Option<Either<String, KsuidOptions>>) -> Result<String> {
     match options {
       Some(Either::A(ref enc_str)) => {
         let e = enc_str.to_lowercase();
         if e == "crockford" || e == "base32" || e == "crockfordbase32" || e == "crockford_base32" {
           self.to_crockford_base32(None)
+        } else if e == "base36" {
+          self.to_base36(None)
         } else {
           self.to_base62(None)
         }
@@ -457,6 +585,8 @@ impl Ksuid {
         let alpha = opts.alphabet.as_deref().or(self.default_alphabet.as_deref());
         if e == "crockford" || e == "base32" || e == "crockfordbase32" || e == "crockford_base32" {
           encode_crockford(&self.bytes, alpha)
+        } else if e == "base36" {
+          encode_base36(&self.bytes, alpha)
         } else {
           encode_base62(&self.bytes, alpha)
         }
@@ -464,6 +594,8 @@ impl Ksuid {
       None => {
         if self.default_enc == "crockford" || self.default_enc == "base32" || self.default_enc == "crockfordbase32" || self.default_enc == "crockford_base32" {
           self.to_crockford_base32(None)
+        } else if self.default_enc == "base36" {
+          self.to_base36(None)
         } else {
           self.to_base62(None)
         }
@@ -546,6 +678,8 @@ impl KsuidMs {
       Some(Either::A(s)) => {
         let bytes = if enc == "crockford" || enc == "base32" || enc == "crockfordbase32" || enc == "crockford_base32" {
           decode_crockford(&s, alphabet.as_deref())?
+        } else if enc == "base36" {
+          decode_base36(&s, alphabet.as_deref())?
         } else {
           decode_base62(&s, alphabet.as_deref())?
         };
@@ -637,6 +771,16 @@ impl KsuidMs {
   }
 
   #[napi(factory)]
+  pub fn from_base36(base36: String, alphabet: Option<String>) -> Result<Self> {
+    let bytes = decode_base36(&base36, alphabet.as_deref())?;
+    Ok(KsuidMs {
+      bytes,
+      default_enc: "base36".to_string(),
+      default_alphabet: alphabet,
+    })
+  }
+
+  #[napi(factory)]
   pub fn from_str(
     encoded: String,
     options: Option<Either<String, KsuidOptions>>,
@@ -644,6 +788,8 @@ impl KsuidMs {
     let (enc, alphabet, _) = parse_options_struct(options.as_ref(), TimestampMode::Bit64);
     let bytes = if enc == "crockford" || enc == "base32" || enc == "crockfordbase32" || enc == "crockford_base32" {
       decode_crockford(&encoded, alphabet.as_deref())?
+    } else if enc == "base36" {
+      decode_base36(&encoded, alphabet.as_deref())?
     } else {
       decode_base62(&encoded, alphabet.as_deref())?
     };
@@ -690,12 +836,20 @@ impl KsuidMs {
   }
 
   #[napi]
+  pub fn to_base36(&self, alphabet: Option<String>) -> Result<String> {
+    let alpha = alphabet.as_deref().or(self.default_alphabet.as_deref());
+    encode_base36(&self.bytes, alpha)
+  }
+
+  #[napi]
   pub fn to_string(&self, options: Option<Either<String, KsuidOptions>>) -> Result<String> {
     match options {
       Some(Either::A(ref enc_str)) => {
         let e = enc_str.to_lowercase();
         if e == "crockford" || e == "base32" || e == "crockfordbase32" || e == "crockford_base32" {
           self.to_crockford_base32(None)
+        } else if e == "base36" {
+          self.to_base36(None)
         } else {
           self.to_base62(None)
         }
@@ -705,6 +859,8 @@ impl KsuidMs {
         let alpha = opts.alphabet.as_deref().or(self.default_alphabet.as_deref());
         if e == "crockford" || e == "base32" || e == "crockfordbase32" || e == "crockford_base32" {
           encode_crockford(&self.bytes, alpha)
+        } else if e == "base36" {
+          encode_base36(&self.bytes, alpha)
         } else {
           encode_base62(&self.bytes, alpha)
         }
@@ -712,6 +868,8 @@ impl KsuidMs {
       None => {
         if self.default_enc == "crockford" || self.default_enc == "base32" || self.default_enc == "crockfordbase32" || self.default_enc == "crockford_base32" {
           self.to_crockford_base32(None)
+        } else if self.default_enc == "base36" {
+          self.to_base36(None)
         } else {
           self.to_base62(None)
         }

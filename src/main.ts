@@ -2,7 +2,7 @@ import type { KsuidOptions as NativeKsuidOptions } from "../index.d.ts";
 import { Ksuid, KsuidMs } from "../index.js";
 
 export type KsuidOptions = {
-  enc?: "base62" | "crockford" | "base32" | (string & {});
+  enc?: "base62" | "crockford" | "base32" | "base36" | (string & {});
   alphabet?: string;
   timestampSize?:
     | "32bit"

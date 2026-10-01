@@ -86,6 +86,24 @@ test("Ksuid - Crockford Base32 encoding and custom alphabets", () => {
   expect(parsedCustomB62.equals(ksuid)).toBe(true);
 });
 
+test("Ksuid - Base36 encoding and decoding", () => {
+  const ksuid = Ksuid.now();
+  const b36 = ksuid.toBase36();
+  expect(b36).toHaveLength(31);
+  expect(ksuid.toString("base36")).toBe(b36);
+
+  const parsed = Ksuid.fromBase36(b36);
+  expect(parsed.equals(ksuid)).toBe(true);
+
+  // Custom Base36 alphabet (36 chars)
+  const custom36Alphabet = "zyxwvutsrqponmlkjihgfedcba9876543210";
+  const customB36 = ksuid.toBase36(custom36Alphabet);
+  expect(customB36).toHaveLength(31);
+
+  const parsedCustom = Ksuid.fromBase36(customB36, custom36Alphabet);
+  expect(parsedCustom.equals(ksuid)).toBe(true);
+});
+
 test("Ksuid - timestampSize options (32bit / 48bit / 64bit epochs)", () => {
   // 32bit (4bytes) epoch in seconds -> 16 bytes payload
   const k32 = new Ksuid(undefined, { timestampSize: "32bit" });
