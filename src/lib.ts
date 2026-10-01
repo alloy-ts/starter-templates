@@ -1,5 +1,120 @@
 // @ts-ignore
-import { Repository as NativeRepository } from "../index.js";
+import {
+  Commit as NativeCommit,
+  Repository as NativeRepository,
+  RepositoryState as NativeRepositoryState,
+  Signature as NativeSignature,
+  Tree as NativeTree,
+  Worktree as NativeWorktree,
+} from "../index.js";
+
+export { NativeRepositoryState as RepositoryState };
+
+export class Signature {
+  readonly name: string;
+  readonly email: string;
+  readonly timeSeconds: number;
+  readonly timeOffsetMinutes: number;
+
+  constructor(nativeSig: any) {
+    this.name = nativeSig.name;
+    this.email = nativeSig.email;
+    this.timeSeconds = nativeSig.timeSeconds;
+    this.timeOffsetMinutes = nativeSig.timeOffsetMinutes;
+  }
+}
+
+export class Commit {
+  private nativeCommit: any;
+
+  constructor(nativeCommit: any) {
+    this.nativeCommit = nativeCommit;
+  }
+
+  id(): string {
+    return this.nativeCommit.id();
+  }
+
+  message(): string | null {
+    return this.nativeCommit.message();
+  }
+
+  summary(): string | null {
+    return this.nativeCommit.summary();
+  }
+
+  body(): string | null {
+    return this.nativeCommit.body();
+  }
+
+  authorName(): string {
+    return this.nativeCommit.authorName();
+  }
+
+  authorEmail(): string {
+    return this.nativeCommit.authorEmail();
+  }
+
+  committerName(): string {
+    return this.nativeCommit.committerName();
+  }
+
+  committerEmail(): string {
+    return this.nativeCommit.committerEmail();
+  }
+
+  treeId(): string {
+    return this.nativeCommit.treeId();
+  }
+
+  parentIds(): string[] {
+    return this.nativeCommit.parentIds();
+  }
+
+  timeSeconds(): number {
+    return this.nativeCommit.timeSeconds();
+  }
+}
+
+export class Tree {
+  private nativeTree: any;
+
+  constructor(nativeTree: any) {
+    this.nativeTree = nativeTree;
+  }
+
+  id(): string {
+    return this.nativeTree.id();
+  }
+
+  len(): number {
+    return this.nativeTree.len();
+  }
+
+  isEmpty(): boolean {
+    return this.nativeTree.isEmpty();
+  }
+}
+
+export class Worktree {
+  private nativeWorktree: any;
+
+  constructor(nativeWorktree: any) {
+    this.nativeWorktree = nativeWorktree;
+  }
+
+  name(): string | null {
+    return this.nativeWorktree.name();
+  }
+
+  path(): string {
+    return this.nativeWorktree.path();
+  }
+
+  isLocked(): boolean {
+    return this.nativeWorktree.isLocked();
+  }
+}
 
 export class Repository {
   private nativeRepo: any;
@@ -66,6 +181,10 @@ export class Repository {
     return this.nativeRepo.state();
   }
 
+  stateEnum(): any {
+    return this.nativeRepo.stateEnum();
+  }
+
   headName(): string {
     return this.nativeRepo.headName();
   }
@@ -94,6 +213,21 @@ export class Repository {
     this.nativeRepo.createBranch(branchName, targetCommitId, force);
   }
 
+  findCommit(oidHex: string): Commit {
+    const commit = this.nativeRepo.findCommit(oidHex);
+    return new Commit(commit);
+  }
+
+  findTree(oidHex: string): Tree {
+    const tree = this.nativeRepo.findTree(oidHex);
+    return new Tree(tree);
+  }
+
+  signature(): Signature {
+    const sig = this.nativeRepo.signature();
+    return new Signature(sig);
+  }
+
   commit(
     updateRef: string | null | undefined,
     authorName: string,
@@ -118,5 +252,14 @@ export class Repository {
 
   statusFile(path: string): string {
     return this.nativeRepo.statusFile(path);
+  }
+
+  worktrees(): string[] {
+    return this.nativeRepo.worktrees();
+  }
+
+  findWorktree(name: string): Worktree {
+    const wt = this.nativeRepo.findWorktree(name);
+    return new Worktree(wt);
   }
 }

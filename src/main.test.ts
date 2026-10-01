@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { expect, test } from "vite-plus/test";
-import { Repository } from "./lib.ts";
+import { Repository, RepositoryState } from "./lib.ts";
 
 test("Repository.init creates a new repository", () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "git2-test-init-"));
@@ -12,6 +12,7 @@ test("Repository.init creates a new repository", () => {
     expect(repo.isEmpty()).toBe(true);
     expect(repo.path()).toContain(".git");
     expect(repo.workdir()).toBeTruthy();
+    expect(repo.stateEnum()).toBe(RepositoryState.Clean);
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
@@ -62,6 +63,17 @@ test("Repository ignore rules and status", () => {
     expect(repo.isPathIgnored("app.log")).toBe(true);
     expect(repo.isPathIgnored("app.txt")).toBe(false);
     repo.clearIgnoreRules();
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test("Repository worktrees list", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "git2-test-wt-"));
+  try {
+    const repo = Repository.init(tmpDir);
+    const wts = repo.worktrees();
+    expect(Array.isArray(wts)).toBe(true);
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }

@@ -1,6 +1,174 @@
-use git2::{Oid, Repository as GitRepository, Signature};
+use git2::{
+  Oid, Repository as GitRepository, RepositoryState as GitRepositoryState, Signature as GitSignature,
+};
 use napi_derive::napi;
 use std::path::Path;
+
+#[napi]
+pub enum RepositoryState {
+  Clean,
+  Merge,
+  Revert,
+  RevertSequence,
+  CherryPick,
+  CherryPickSequence,
+  Bisect,
+  Rebase,
+  RebaseInteractive,
+  RebaseMerge,
+  ApplyMailbox,
+  ApplyMailboxOrRebase,
+}
+
+impl From<GitRepositoryState> for RepositoryState {
+  fn from(state: GitRepositoryState) -> Self {
+    match state {
+      GitRepositoryState::Clean => RepositoryState::Clean,
+      GitRepositoryState::Merge => RepositoryState::Merge,
+      GitRepositoryState::Revert => RepositoryState::Revert,
+      GitRepositoryState::RevertSequence => RepositoryState::RevertSequence,
+      GitRepositoryState::CherryPick => RepositoryState::CherryPick,
+      GitRepositoryState::CherryPickSequence => RepositoryState::CherryPickSequence,
+      GitRepositoryState::Bisect => RepositoryState::Bisect,
+      GitRepositoryState::Rebase => RepositoryState::Rebase,
+      GitRepositoryState::RebaseInteractive => RepositoryState::RebaseInteractive,
+      GitRepositoryState::RebaseMerge => RepositoryState::RebaseMerge,
+      GitRepositoryState::ApplyMailbox => RepositoryState::ApplyMailbox,
+      GitRepositoryState::ApplyMailboxOrRebase => RepositoryState::ApplyMailboxOrRebase,
+    }
+  }
+}
+
+#[napi]
+pub struct Signature {
+  pub name: String,
+  pub email: String,
+  pub time_seconds: i64,
+  pub time_offset_minutes: i32,
+}
+
+#[napi]
+pub struct Commit {
+  id: String,
+  message: Option<String>,
+  summary: Option<String>,
+  body: Option<String>,
+  author_name: String,
+  author_email: String,
+  committer_name: String,
+  committer_email: String,
+  tree_id: String,
+  parent_ids: Vec<String>,
+  time_seconds: i64,
+}
+
+#[napi]
+impl Commit {
+  #[napi]
+  pub fn id(&self) -> String {
+    self.id.clone()
+  }
+
+  #[napi]
+  pub fn message(&self) -> Option<String> {
+    self.message.clone()
+  }
+
+  #[napi]
+  pub fn summary(&self) -> Option<String> {
+    self.summary.clone()
+  }
+
+  #[napi]
+  pub fn body(&self) -> Option<String> {
+    self.body.clone()
+  }
+
+  #[napi]
+  pub fn author_name(&self) -> String {
+    self.author_name.clone()
+  }
+
+  #[napi]
+  pub fn author_email(&self) -> String {
+    self.author_email.clone()
+  }
+
+  #[napi]
+  pub fn committer_name(&self) -> String {
+    self.committer_name.clone()
+  }
+
+  #[napi]
+  pub fn committer_email(&self) -> String {
+    self.committer_email.clone()
+  }
+
+  #[napi]
+  pub fn tree_id(&self) -> String {
+    self.tree_id.clone()
+  }
+
+  #[napi]
+  pub fn parent_ids(&self) -> Vec<String> {
+    self.parent_ids.clone()
+  }
+
+  #[napi]
+  pub fn time_seconds(&self) -> i64 {
+    self.time_seconds
+  }
+}
+
+#[napi]
+pub struct Tree {
+  id: String,
+  len: u32,
+  is_empty: bool,
+}
+
+#[napi]
+impl Tree {
+  #[napi]
+  pub fn id(&self) -> String {
+    self.id.clone()
+  }
+
+  #[napi]
+  pub fn len(&self) -> u32 {
+    self.len
+  }
+
+  #[napi]
+  pub fn is_empty(&self) -> bool {
+    self.is_empty
+  }
+}
+
+#[napi]
+pub struct Worktree {
+  name: Option<String>,
+  path: String,
+  is_locked: bool,
+}
+
+#[napi]
+impl Worktree {
+  #[napi]
+  pub fn name(&self) -> Option<String> {
+    self.name.clone()
+  }
+
+  #[napi]
+  pub fn path(&self) -> String {
+    self.path.clone()
+  }
+
+  #[napi]
+  pub fn is_locked(&self) -> bool {
+    self.is_locked
+  }
+}
 
 #[napi]
 pub struct Repository {
@@ -81,6 +249,11 @@ impl Repository {
   }
 
   #[napi]
+  pub fn state_enum(&self) -> RepositoryState {
+    self.inner.state().into()
+  }
+
+  #[napi]
   pub fn head_name(&self) -> napi::Result<String> {
     let head = self.inner.head().map_err(|e| napi::Error::from_reason(e.to_string()))?;
     Ok(head.name().unwrap_or("").to_string())
@@ -128,6 +301,52 @@ impl Repository {
   }
 
   #[napi]
+  pub fn find_commit(&self, oid_hex: String) -> napi::Result<Commit> {
+    let oid = Oid::from_str(&oid_hex).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    let commit = self.inner.find_commit(oid).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    let author = commit.author();
+    let committer = commit.committer();
+    let parent_ids = commit.parent_ids().map(|id| id.to_string()).collect();
+
+    Ok(Commit {
+      id: commit.id().to_string(),
+      message: commit.message().ok().map(|s| s.to_string()),
+      summary: commit.summary().ok().flatten().map(|s| s.to_string()),
+      body: commit.body().ok().flatten().map(|s| s.to_string()),
+      author_name: author.name().unwrap_or("").to_string(),
+      author_email: author.email().unwrap_or("").to_string(),
+      committer_name: committer.name().unwrap_or("").to_string(),
+      committer_email: committer.email().unwrap_or("").to_string(),
+      tree_id: commit.tree_id().to_string(),
+      parent_ids,
+      time_seconds: commit.time().seconds(),
+    })
+  }
+
+  #[napi]
+  pub fn find_tree(&self, oid_hex: String) -> napi::Result<Tree> {
+    let oid = Oid::from_str(&oid_hex).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    let tree = self.inner.find_tree(oid).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    Ok(Tree {
+      id: tree.id().to_string(),
+      len: tree.len() as u32,
+      is_empty: tree.is_empty(),
+    })
+  }
+
+  #[napi]
+  pub fn signature(&self) -> napi::Result<Signature> {
+    let sig = self.inner.signature().map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    let time = sig.when();
+    Ok(Signature {
+      name: sig.name().unwrap_or("").to_string(),
+      email: sig.email().unwrap_or("").to_string(),
+      time_seconds: time.seconds(),
+      time_offset_minutes: time.offset_minutes(),
+    })
+  }
+
+  #[napi]
   pub fn commit(
     &self,
     update_ref: Option<String>,
@@ -139,8 +358,8 @@ impl Repository {
     tree_id: String,
     parent_ids: Vec<String>,
   ) -> napi::Result<String> {
-    let author = Signature::now(&author_name, &author_email).map_err(|e| napi::Error::from_reason(e.to_string()))?;
-    let committer = Signature::now(&committer_name, &committer_email).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    let author = GitSignature::now(&author_name, &author_email).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    let committer = GitSignature::now(&committer_name, &committer_email).map_err(|e| napi::Error::from_reason(e.to_string()))?;
     let tree_oid = Oid::from_str(&tree_id).map_err(|e| napi::Error::from_reason(e.to_string()))?;
     let tree = self.inner.find_tree(tree_oid).map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
@@ -171,5 +390,34 @@ impl Repository {
   pub fn status_file(&self, path: String) -> napi::Result<String> {
     let status = self.inner.status_file(Path::new(&path)).map_err(|e| napi::Error::from_reason(e.to_string()))?;
     Ok(format!("{:?}", status))
+  }
+
+  #[napi]
+  pub fn worktrees(&self) -> napi::Result<Vec<String>> {
+    let wt = self.inner.worktrees().map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    let mut list = Vec::new();
+    for r in wt.iter() {
+      if let Ok(Some(name)) = r {
+        list.push(name.to_string());
+      }
+    }
+    Ok(list)
+  }
+
+  #[napi]
+  pub fn find_worktree(&self, name: String) -> napi::Result<Worktree> {
+    let wt = self.inner.find_worktree(&name).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    let wt_name = wt.name().ok().flatten().map(|s| s.to_string());
+    let wt_path = wt.path().to_string_lossy().into_owned();
+    let is_locked = wt.is_locked().map(|s| match s {
+      git2::WorktreeLockStatus::Locked(_) => true,
+      git2::WorktreeLockStatus::Unlocked => false,
+    }).unwrap_or(false);
+
+    Ok(Worktree {
+      name: wt_name,
+      path: wt_path,
+      is_locked,
+    })
   }
 }

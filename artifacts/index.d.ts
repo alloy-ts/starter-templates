@@ -9,6 +9,20 @@
  */
 export declare const __napiBindingTarget: 'native' | 'wasm32-wasi' | 'wasm32-wasip1'
 
+export declare class Commit {
+  id(): string
+  message(): string | null
+  summary(): string | null
+  body(): string | null
+  authorName(): string
+  authorEmail(): string
+  committerName(): string
+  committerEmail(): string
+  treeId(): string
+  parentIds(): Array<string>
+  timeSeconds(): number
+}
+
 export declare class Repository {
   static init(path: string): Repository
   static initBare(path: string): Repository
@@ -23,6 +37,7 @@ export declare class Repository {
   isShallow(): boolean
   isWorktree(): boolean
   state(): string
+  stateEnum(): RepositoryState
   headName(): string
   headTarget(): string | null
   addIgnoreRule(rules: string): void
@@ -30,6 +45,45 @@ export declare class Repository {
   isPathIgnored(path: string): boolean
   remotes(): Array<string>
   createBranch(branchName: string, targetCommitId: string, force?: boolean | undefined | null): void
+  findCommit(oidHex: string): Commit
+  findTree(oidHex: string): Tree
+  signature(): Signature
   commit(updateRef: string | undefined | null, authorName: string, authorEmail: string, committerName: string, committerEmail: string, message: string, treeId: string, parentIds: Array<string>): string
   statusFile(path: string): string
+  worktrees(): Array<string>
+  findWorktree(name: string): Worktree
+}
+
+export declare class Signature {
+  name: string
+  email: string
+  timeSeconds: number
+  timeOffsetMinutes: number
+}
+
+export declare class Tree {
+  id(): string
+  len(): number
+  isEmpty(): boolean
+}
+
+export declare class Worktree {
+  name(): string | null
+  path(): string
+  isLocked(): boolean
+}
+
+export declare const enum RepositoryState {
+  Clean = 0,
+  Merge = 1,
+  Revert = 2,
+  RevertSequence = 3,
+  CherryPick = 4,
+  CherryPickSequence = 5,
+  Bisect = 6,
+  Rebase = 7,
+  RebaseInteractive = 8,
+  RebaseMerge = 9,
+  ApplyMailbox = 10,
+  ApplyMailboxOrRebase = 11,
 }
