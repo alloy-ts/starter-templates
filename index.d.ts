@@ -9,4 +9,27 @@
  */
 export declare const __napiBindingTarget: 'native' | 'wasm32-wasi' | 'wasm32-wasip1'
 
-export declare function add(left: number, right: number): number
+export declare class Repository {
+  static init(path: string): Repository
+  static initBare(path: string): Repository
+  static open(path: string): Repository
+  static openBare(path: string): Repository
+  static clone(url: string, path: string): Repository
+  static discover(path: string): Repository
+  path(): string
+  workdir(): string | null
+  isBare(): boolean
+  isEmpty(): boolean
+  isShallow(): boolean
+  isWorktree(): boolean
+  state(): string
+  headName(): string
+  headTarget(): string | null
+  addIgnoreRule(rules: string): void
+  clearIgnoreRules(): void
+  isPathIgnored(path: string): boolean
+  remotes(): Array<string>
+  createBranch(branchName: string, targetCommitId: string, force?: boolean | undefined | null): void
+  commit(updateRef: string | undefined | null, authorName: string, authorEmail: string, committerName: string, committerEmail: string, message: string, treeId: string, parentIds: Array<string>): string
+  statusFile(path: string): string
+}
