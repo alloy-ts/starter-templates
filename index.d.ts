@@ -7,6 +7,67 @@
  * flavor napi-rs can build is listed, because `NAPI_RS_NATIVE_LIBRARY_PATH`
  * can point the loader at a WASI artifact this package does not build itself.
  */
-export declare const __napiBindingTarget: 'native' | 'wasm32-wasi' | 'wasm32-wasip1'
+export declare const __napiBindingTarget: "native" | "wasm32-wasi" | "wasm32-wasip1";
 
-export declare function add(left: number, right: number): number
+export declare class Ksuid {
+  constructor(
+    input?: string | Uint8Array | undefined | null,
+    options?: string | KsuidOptions | undefined | null,
+  );
+  static now(payload?: Uint8Array | undefined | null): Ksuid;
+  static fromSeconds(
+    timestampSeconds?: number | undefined | null,
+    payload?: Uint8Array | undefined | null,
+  ): Ksuid;
+  static fromBase62(base62: string, alphabet?: string | undefined | null): Ksuid;
+  static fromCrockfordBase32(base32: string, alphabet?: string | undefined | null): Ksuid;
+  static fromBase32(base32: string, alphabet?: string | undefined | null): Ksuid;
+  static fromBase36(base36: string, alphabet?: string | undefined | null): Ksuid;
+  static fromStr(encoded: string, options?: string | KsuidOptions | undefined | null): Ksuid;
+  static fromBytes(bytes: Uint8Array): Ksuid;
+  toBase62(alphabet?: string | undefined | null): string;
+  toCrockfordBase32(alphabet?: string | undefined | null): string;
+  toBase32(alphabet?: string | undefined | null): string;
+  toBase36(alphabet?: string | undefined | null): string;
+  toString(options?: string | KsuidOptions | undefined | null): string;
+  bytes(): Uint8Array;
+  payload(): Uint8Array;
+  timestampSeconds(): number;
+  timestampMillis(): number;
+  compare(other: Ksuid): number;
+  equals(other: Ksuid): boolean;
+}
+
+export declare class KsuidMs {
+  constructor(
+    input?: string | Uint8Array | undefined | null,
+    options?: string | KsuidOptions | undefined | null,
+  );
+  static now(payload?: Uint8Array | undefined | null): KsuidMs;
+  static fromMillis(
+    timestampMillis?: number | undefined | null,
+    payload?: Uint8Array | undefined | null,
+  ): KsuidMs;
+  static fromBase62(base62: string, alphabet?: string | undefined | null): KsuidMs;
+  static fromCrockfordBase32(base32: string, alphabet?: string | undefined | null): KsuidMs;
+  static fromBase32(base32: string, alphabet?: string | undefined | null): KsuidMs;
+  static fromBase36(base36: string, alphabet?: string | undefined | null): KsuidMs;
+  static fromStr(encoded: string, options?: string | KsuidOptions | undefined | null): KsuidMs;
+  static fromBytes(bytes: Uint8Array): KsuidMs;
+  toBase62(alphabet?: string | undefined | null): string;
+  toCrockfordBase32(alphabet?: string | undefined | null): string;
+  toBase32(alphabet?: string | undefined | null): string;
+  toBase36(alphabet?: string | undefined | null): string;
+  toString(options?: string | KsuidOptions | undefined | null): string;
+  bytes(): Uint8Array;
+  payload(): Uint8Array;
+  timestampMillis(): number;
+  compare(other: KsuidMs): number;
+  equals(other: KsuidMs): boolean;
+}
+
+export interface KsuidOptions {
+  enc?: string;
+  alphabet?: string;
+  timestampSize?: string | number;
+}
