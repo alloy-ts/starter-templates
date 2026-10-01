@@ -1,6 +1,8 @@
 // @ts-ignore
 import {
   Commit as NativeCommit,
+  Reference as NativeReference,
+  ReferenceType as NativeReferenceType,
   Repository as NativeRepository,
   RepositoryState as NativeRepositoryState,
   Signature as NativeSignature,
@@ -8,7 +10,7 @@ import {
   Worktree as NativeWorktree,
 } from "../index.js";
 
-export { NativeRepositoryState as RepositoryState };
+export { NativeReferenceType as ReferenceType, NativeRepositoryState as RepositoryState };
 
 export class Signature {
   readonly name: string;
@@ -113,6 +115,50 @@ export class Worktree {
 
   isLocked(): boolean {
     return this.nativeWorktree.isLocked();
+  }
+}
+
+export class Reference {
+  private nativeRef: any;
+
+  constructor(nativeRef: any) {
+    this.nativeRef = nativeRef;
+  }
+
+  name(): string | null {
+    return this.nativeRef.name();
+  }
+
+  shorthand(): string | null {
+    return this.nativeRef.shorthand();
+  }
+
+  target(): string | null {
+    return this.nativeRef.target();
+  }
+
+  symbolicTarget(): string | null {
+    return this.nativeRef.symbolicTarget();
+  }
+
+  kind(): any {
+    return this.nativeRef.kind();
+  }
+
+  isBranch(): boolean {
+    return this.nativeRef.isBranch();
+  }
+
+  isRemote(): boolean {
+    return this.nativeRef.isRemote();
+  }
+
+  isTag(): boolean {
+    return this.nativeRef.isTag();
+  }
+
+  isNote(): boolean {
+    return this.nativeRef.isNote();
   }
 }
 
@@ -221,6 +267,34 @@ export class Repository {
   findTree(oidHex: string): Tree {
     const tree = this.nativeRepo.findTree(oidHex);
     return new Tree(tree);
+  }
+
+  findReference(name: string): Reference {
+    const ref = this.nativeRepo.findReference(name);
+    return new Reference(ref);
+  }
+
+  refnameToId(name: string): string {
+    return this.nativeRepo.refnameToId(name);
+  }
+
+  resolveReferenceFromShortName(refname: string): Reference {
+    const ref = this.nativeRepo.resolveReferenceFromShortName(refname);
+    return new Reference(ref);
+  }
+
+  createReference(name: string, targetOidHex: string, force: boolean, logMessage: string): Reference {
+    const ref = this.nativeRepo.createReference(name, targetOidHex, force, logMessage);
+    return new Reference(ref);
+  }
+
+  createSymbolicReference(name: string, target: string, force: boolean, logMessage: string): Reference {
+    const ref = this.nativeRepo.createSymbolicReference(name, target, force, logMessage);
+    return new Reference(ref);
+  }
+
+  referenceNames(): string[] {
+    return this.nativeRepo.referenceNames();
   }
 
   signature(): Signature {

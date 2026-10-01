@@ -716,11 +716,13 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { Commit, Repository, Signature, Tree, Worktree, RepositoryState } = nativeBinding
+const { Commit, Reference, Repository, Signature, Tree, Worktree, ReferenceType, RepositoryState } = nativeBinding
 export { Commit }
+export { Reference }
 export { Repository }
 export { Signature }
 export { Tree }
 export { Worktree }
+export { ReferenceType }
 export { RepositoryState }
 export const __napiBindingTarget = __napiLoadedBindingTarget

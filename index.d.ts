@@ -23,6 +23,18 @@ export declare class Commit {
   timeSeconds(): number
 }
 
+export declare class Reference {
+  name(): string | null
+  shorthand(): string | null
+  target(): string | null
+  symbolicTarget(): string | null
+  kind(): ReferenceType
+  isBranch(): boolean
+  isRemote(): boolean
+  isTag(): boolean
+  isNote(): boolean
+}
+
 export declare class Repository {
   static init(path: string): Repository
   static initBare(path: string): Repository
@@ -47,6 +59,12 @@ export declare class Repository {
   createBranch(branchName: string, targetCommitId: string, force?: boolean | undefined | null): void
   findCommit(oidHex: string): Commit
   findTree(oidHex: string): Tree
+  findReference(name: string): Reference
+  refnameToId(name: string): string
+  resolveReferenceFromShortName(refname: string): Reference
+  createReference(name: string, targetOidHex: string, force: boolean, logMessage: string): Reference
+  createSymbolicReference(name: string, target: string, force: boolean, logMessage: string): Reference
+  referenceNames(): Array<string>
   signature(): Signature
   commit(updateRef: string | undefined | null, authorName: string, authorEmail: string, committerName: string, committerEmail: string, message: string, treeId: string, parentIds: Array<string>): string
   statusFile(path: string): string
@@ -71,6 +89,12 @@ export declare class Worktree {
   name(): string | null
   path(): string
   isLocked(): boolean
+}
+
+export declare const enum ReferenceType {
+  Direct = 0,
+  Symbolic = 1,
+  Unknown = 2,
 }
 
 export declare const enum RepositoryState {

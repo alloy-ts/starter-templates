@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { expect, test } from "vite-plus/test";
-import { Repository, RepositoryState } from "./lib.ts";
+import { ReferenceType, Repository, RepositoryState } from "./lib.ts";
 
 test("Repository.init creates a new repository", () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "git2-test-init-"));
@@ -68,12 +68,17 @@ test("Repository ignore rules and status", () => {
   }
 });
 
-test("Repository worktrees list", () => {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "git2-test-wt-"));
+test("Repository references operations", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "git2-test-refs-"));
   try {
     const repo = Repository.init(tmpDir);
-    const wts = repo.worktrees();
-    expect(Array.isArray(wts)).toBe(true);
+    const symRef = repo.createSymbolicReference("HEAD", "refs/heads/main", true, "set head to main");
+    expect(symRef.name()).toBe("HEAD");
+    expect(symRef.symbolicTarget()).toBe("refs/heads/main");
+    expect(symRef.kind()).toBe(ReferenceType.Symbolic);
+
+    const names = repo.referenceNames();
+    expect(Array.isArray(names)).toBe(true);
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }

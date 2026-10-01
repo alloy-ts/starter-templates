@@ -1,5 +1,6 @@
 use git2::{
-  Oid, Repository as GitRepository, RepositoryState as GitRepositoryState, Signature as GitSignature,
+  Oid, ReferenceType as GitReferenceType, Repository as GitRepository,
+  RepositoryState as GitRepositoryState, Signature as GitSignature,
 };
 use napi_derive::napi;
 use std::path::Path;
@@ -35,6 +36,23 @@ impl From<GitRepositoryState> for RepositoryState {
       GitRepositoryState::RebaseMerge => RepositoryState::RebaseMerge,
       GitRepositoryState::ApplyMailbox => RepositoryState::ApplyMailbox,
       GitRepositoryState::ApplyMailboxOrRebase => RepositoryState::ApplyMailboxOrRebase,
+    }
+  }
+}
+
+#[napi]
+pub enum ReferenceType {
+  Direct,
+  Symbolic,
+  Unknown,
+}
+
+impl From<Option<GitReferenceType>> for ReferenceType {
+  fn from(kind: Option<GitReferenceType>) -> Self {
+    match kind {
+      Some(GitReferenceType::Direct) => ReferenceType::Direct,
+      Some(GitReferenceType::Symbolic) => ReferenceType::Symbolic,
+      _ => ReferenceType::Unknown,
     }
   }
 }
@@ -171,6 +189,71 @@ impl Worktree {
 }
 
 #[napi]
+pub struct Reference {
+  name: Option<String>,
+  shorthand: Option<String>,
+  target: Option<String>,
+  symbolic_target: Option<String>,
+  kind: ReferenceType,
+  is_branch: bool,
+  is_remote: bool,
+  is_tag: bool,
+  is_note: bool,
+}
+
+#[napi]
+impl Reference {
+  #[napi]
+  pub fn name(&self) -> Option<String> {
+    self.name.clone()
+  }
+
+  #[napi]
+  pub fn shorthand(&self) -> Option<String> {
+    self.shorthand.clone()
+  }
+
+  #[napi]
+  pub fn target(&self) -> Option<String> {
+    self.target.clone()
+  }
+
+  #[napi]
+  pub fn symbolic_target(&self) -> Option<String> {
+    self.symbolic_target.clone()
+  }
+
+  #[napi]
+  pub fn kind(&self) -> ReferenceType {
+    match self.kind {
+      ReferenceType::Direct => ReferenceType::Direct,
+      ReferenceType::Symbolic => ReferenceType::Symbolic,
+      ReferenceType::Unknown => ReferenceType::Unknown,
+    }
+  }
+
+  #[napi]
+  pub fn is_branch(&self) -> bool {
+    self.is_branch
+  }
+
+  #[napi]
+  pub fn is_remote(&self) -> bool {
+    self.is_remote
+  }
+
+  #[napi]
+  pub fn is_tag(&self) -> bool {
+    self.is_tag
+  }
+
+  #[napi]
+  pub fn is_note(&self) -> bool {
+    self.is_note
+  }
+}
+
+#[napi]
 pub struct Repository {
   inner: GitRepository,
 }
@@ -256,7 +339,7 @@ impl Repository {
   #[napi]
   pub fn head_name(&self) -> napi::Result<String> {
     let head = self.inner.head().map_err(|e| napi::Error::from_reason(e.to_string()))?;
-    Ok(head.name().unwrap_or("").to_string())
+    Ok(head.name().ok().unwrap_or("").to_string())
   }
 
   #[napi]
@@ -332,6 +415,91 @@ impl Repository {
       len: tree.len() as u32,
       is_empty: tree.is_empty(),
     })
+  }
+
+  #[napi]
+  pub fn find_reference(&self, name: String) -> napi::Result<Reference> {
+    let r = self.inner.find_reference(&name).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    Ok(Reference {
+      name: r.name().ok().map(String::from),
+      shorthand: r.shorthand().ok().map(String::from),
+      target: r.target().map(|oid| oid.to_string()),
+      symbolic_target: r.symbolic_target().ok().flatten().map(String::from),
+      kind: r.kind().into(),
+      is_branch: r.is_branch(),
+      is_remote: r.is_remote(),
+      is_tag: r.is_tag(),
+      is_note: r.is_note(),
+    })
+  }
+
+  #[napi]
+  pub fn refname_to_id(&self, name: String) -> napi::Result<String> {
+    let oid = self.inner.refname_to_id(&name).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    Ok(oid.to_string())
+  }
+
+  #[napi]
+  pub fn resolve_reference_from_short_name(&self, refname: String) -> napi::Result<Reference> {
+    let r = self.inner.resolve_reference_from_short_name(&refname).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    Ok(Reference {
+      name: r.name().ok().map(String::from),
+      shorthand: r.shorthand().ok().map(String::from),
+      target: r.target().map(|oid| oid.to_string()),
+      symbolic_target: r.symbolic_target().ok().flatten().map(String::from),
+      kind: r.kind().into(),
+      is_branch: r.is_branch(),
+      is_remote: r.is_remote(),
+      is_tag: r.is_tag(),
+      is_note: r.is_note(),
+    })
+  }
+
+  #[napi]
+  pub fn create_reference(&self, name: String, target_oid_hex: String, force: bool, log_message: String) -> napi::Result<Reference> {
+    let oid = Oid::from_str(&target_oid_hex).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    let r = self.inner.reference(&name, oid, force, &log_message).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    Ok(Reference {
+      name: r.name().ok().map(String::from),
+      shorthand: r.shorthand().ok().map(String::from),
+      target: r.target().map(|oid| oid.to_string()),
+      symbolic_target: r.symbolic_target().ok().flatten().map(String::from),
+      kind: r.kind().into(),
+      is_branch: r.is_branch(),
+      is_remote: r.is_remote(),
+      is_tag: r.is_tag(),
+      is_note: r.is_note(),
+    })
+  }
+
+  #[napi]
+  pub fn create_symbolic_reference(&self, name: String, target: String, force: bool, log_message: String) -> napi::Result<Reference> {
+    let r = self.inner.reference_symbolic(&name, &target, force, &log_message).map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    Ok(Reference {
+      name: r.name().ok().map(String::from),
+      shorthand: r.shorthand().ok().map(String::from),
+      target: r.target().map(|oid| oid.to_string()),
+      symbolic_target: r.symbolic_target().ok().flatten().map(String::from),
+      kind: r.kind().into(),
+      is_branch: r.is_branch(),
+      is_remote: r.is_remote(),
+      is_tag: r.is_tag(),
+      is_note: r.is_note(),
+    })
+  }
+
+  #[napi]
+  pub fn reference_names(&self) -> napi::Result<Vec<String>> {
+    let refs = self.inner.references().map_err(|e| napi::Error::from_reason(e.to_string()))?;
+    let mut names = Vec::new();
+    for r in refs {
+      if let Ok(r) = r {
+        if let Ok(name) = r.name() {
+          names.push(name.to_string());
+        }
+      }
+    }
+    Ok(names)
   }
 
   #[napi]
