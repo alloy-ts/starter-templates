@@ -10,3 +10,6 @@
 [submodule "packages/apple-container"]
 	path = packages/apple-container
 	url = https://github.com/apple/container
+[submodule "patches/sysinfo"]
+	path = patches/sysinfo
+	url = https://github.com/GuillaumeGomez/sysinfo.git

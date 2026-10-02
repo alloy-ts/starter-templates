@@ -1,5 +1,8 @@
 use napi_derive::napi;
 use std::collections::HashMap;
+use virtio_queue::{Queue, QueueT};
+use vm_memory::{GuestAddress, GuestMemoryMmap};
+use vmm_sys_util::eventfd::EventFd;
 
 pub mod cli;
 pub use cli::*;
@@ -459,6 +462,9 @@ pub struct VirtcontainersRuntime {
 impl VirtcontainersRuntime {
   #[napi(constructor)]
   pub fn new() -> Self {
+    let _event = EventFd::new(0).ok();
+    let _mem = GuestMemoryMmap::<()>::from_ranges(&[(GuestAddress(0x100000), 0x10000)]).ok();
+    let _queue = Queue::new(1024);
     Self { active: true }
   }
 
@@ -469,6 +475,7 @@ impl VirtcontainersRuntime {
 
   #[napi]
   pub fn create_sandbox(&self, id: String) -> napi::Result<String> {
+    let _event = EventFd::new(0).map_err(|e| napi::Error::from_reason(e.to_string()))?;
     Ok(format!("sandbox-{}", id))
   }
 

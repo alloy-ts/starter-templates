@@ -8,6 +8,7 @@ import {
   BuilderStatus,
   BuilderStop,
   BuildTransfer,
+  Container,
   ContainerClient,
   ContainerStart,
   ContainerStatus,
@@ -18,7 +19,7 @@ import {
   ProcessIo,
   ServerStream,
   VirtcontainersRuntime,
-  type Container,
+  type Container as ContainerType,
 } from "./lib.ts";
 
 test("add function", () => {
@@ -86,7 +87,7 @@ test("ServerStream packet type handling", () => {
 test("ContainerStart logic and errors", () => {
   const client = new ContainerClient();
 
-  const containerRunning: Container = {
+  const containerRunning: ContainerType = {
     id: "cont-running-1",
     status: ContainerStatus.Running,
     configuration: {
@@ -111,7 +112,7 @@ test("ContainerStart logic and errors", () => {
   });
   expect(runningId).toBe("cont-running-1");
 
-  const containerWithMount: Container = {
+  const containerWithMount: ContainerType = {
     id: "cont-mount-1",
     status: ContainerStatus.Stopped,
     configuration: {
@@ -148,6 +149,22 @@ test("BuildCommand execution", () => {
       contextDir: "/non/existent/context/dir",
     });
   }).toThrow("context dir does not exist");
+});
+
+test("Container global object wrapper", () => {
+  const buildResult = Container.build({
+    contextDir: ".",
+    tag: ["wrapper-image:v1.0.0"],
+  });
+  expect(buildResult).toBe("Successfully built image: wrapper-image:v1.0.0");
+
+  expect(Container.builder.status()).toBe("running");
+  expect(Container.builder.start({ cpus: 2 })).toBe(true);
+  expect(Container.builder.stop()).toBe(true);
+  expect(Container.builder.delete(false)).toBe(true);
+
+  expect(Container.compose.up({ projectName: "my-app" })).toBe("Compose project 'my-app' started");
+  expect(Container.compose.down("my-app")).toBe("Compose project 'my-app' stopped");
 });
 
 test("Builder commands", () => {

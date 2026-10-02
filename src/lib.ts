@@ -27,10 +27,12 @@ export const {
   ContainerCompose,
   ContainerStart,
   ImageTransfer,
-  Io,
+  IO,
+  Io = nativeBinding.IO || nativeBinding.Io,
   Platform,
   ProcessHandle,
-  ProcessIo,
+  ProcessIO,
+  ProcessIo = nativeBinding.ProcessIO || nativeBinding.ProcessIo,
   ServerStream,
   VirtcontainersRuntime,
   ContainerStatus,
@@ -49,6 +51,7 @@ export type {
 } from "../index.d.ts";
 
 export { nativeBinding };
+export { Container } from "./cli/container-build.ts";
 export * as containerCli from "./cli/container.ts";
 export * as containerBuildCli from "./cli/container-build.ts";
 export * as containerComposeCli from "./cli/container-compose.ts";
