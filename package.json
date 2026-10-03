@@ -21,7 +21,7 @@
     "test": "vp test && node --test test.cjs",
     "check": "vp check",
     "ci": "vp run ci",
-    "ci:local": "node scripts/ci-runner.js --job all",
+    "ci:local": "tsx scripts/ci.ts --job all",
     "fmt": "vp fmt",
     "lint": "vp lint",
     "prepublishOnly": "vp run build",
@@ -34,6 +34,7 @@
     "@types/node": "^26.6.2",
     "@voidzero-dev/vite-task-client": "^0.2.0",
     "emnapi": "2.0.0-alpha.5",
+    "tsx": "^4.23.15",
     "vite-plus": "^1.0.0-rc.1"
   },
   "peerDependencies": {

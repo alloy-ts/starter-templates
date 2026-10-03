@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/crates/oxc_formatter/schemas/oxfmtrc.json",
+  "ignore": [
+    "examples/**",
+    "examples",
+    "artifacts/**",
+    "artifacts",
+    "dist/**",
+    "dist",
+    "index.js",
+    "index.d.ts"
+  ]
+}

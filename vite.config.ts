@@ -33,34 +33,34 @@ export default defineConfig({
   },
   tasks: {
     ci: {
-      command: "node scripts/ci-runner.js --job all",
+      command: "tsx scripts/ci.ts --job all",
       cache: {
         input: [{ auto: true }, "!dist/**", "!*.node"],
         output: ["dist/**", "*.node"],
       },
     },
     "ci:build": {
-      command: "node scripts/ci-runner.js --job build",
+      command: "tsx scripts/ci.ts --job build",
       cache: {
         input: [{ auto: true }, "!dist/**", "!*.node"],
         output: ["dist/**", "*.node"],
       },
     },
     "ci:test": {
-      command: "node scripts/ci-runner.js --job test",
+      command: "tsx scripts/ci.ts --job test",
       cache: {
         input: [{ auto: true }],
       },
     },
     "ci:cross": {
-      command: "node scripts/ci-runner.js --job cross",
+      command: "tsx scripts/ci.ts --job cross",
       cache: {
         input: [{ auto: true }, "!dist/**", "!*.node"],
         output: ["dist/**", "*.node"],
       },
     },
     "ci:publish": {
-      command: "node scripts/ci-runner.js --job publish",
+      command: "tsx scripts/ci.ts --job publish",
       cache: {
         input: [{ auto: true }],
       },
