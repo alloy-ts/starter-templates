@@ -1,6 +1,7 @@
-import { expect, test } from "vite-plus/test";
+import assert from "node:assert/strict";
+import test from "node:test";
 import { main } from "./main.ts";
 
 test("main returns Hello, world!", () => {
-  expect(main()).toBe("Hello, world!");
+  assert.equal(main(), "Hello, world!");
 });
