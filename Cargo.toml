@@ -16,7 +16,6 @@ openssl = "0.10.81"
 rand = "0.10.3"
 ring = "0.17.14"
 rustls = { version = "0.23.45", features = ["ring"] }
-rustls-mbedcrypto-provider = "0.1.1"
 rustls-openssl = "0.4.2"
 simdutf8 = "0.1.5"
 

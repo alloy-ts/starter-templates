@@ -31,13 +31,3 @@ test('TLS with BTLS provider', () => {
   assert.ok(Array.isArray(suites));
   assert.ok(suites.length > 0);
 });
-
-test('TLS with MbedTLS provider', () => {
-  const tls = new TLS(TlsProvider.MbedTLS);
-  assert.equal(tls.provider, 'mbedtls');
-  assert.equal(tls.isSupported(), true);
-
-  const suites = tls.getCipherSuites();
-  assert.ok(Array.isArray(suites));
-  assert.ok(suites.length > 0);
-});

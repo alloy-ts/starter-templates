@@ -10,7 +10,7 @@ This document tabulates the standard `node:crypto` API, our native NAPI-RS imple
 | **`crypto.createHmac` / `crypto.Hmac`** | `crypto.createHmac(algorithm, key[, options])` creates `Hmac` instance using secret key. | Implemented in `src/hmac.rs` using `ring::hmac`. | **Supported** | Supports `sha1`, `sha256`, `sha384`, `sha512` HMAC. Supports `hex`, `base64`, `latin1`, `utf8`, `buffer` encodings. |
 | **`crypto.pbkdf2` / `crypto.pbkdf2Sync`** | Async and sync Password-Based Key Derivation Function 2 (PBKDF2). | Implemented in `src/pbkdf2.rs` using `ring::pbkdf2`. | **Supported** | Supports `sha1`, `sha256`, `sha384`, `sha512` digest algorithms. Non-blocking thread pool execution for async `pbkdf2`. |
 | **Argon2 (`crypto.argon2`, `crypto.argon2Sync`, etc.)** | Modern password hashing standard (PHC winner format). Extended crypto API. | Implemented in `src/argon2.rs` using `argon2-rust`. | **Supported** | Supports `argon2d`, `argon2i`, `argon2id` algorithms, PHC string formatting/parsing, custom time/memory cost & parallelism. Exposes `argon2` and `argon2Sync`. |
-| **`TLS` Class / Multi-backend TLS** | Configurable TLS provider selection for `rustls`. | Implemented in `src/tls.rs` using `rustls-openssl`, `boring-rustls-provider`, `rustls-mbedcrypto-provider`, and `ring`. | **Supported** | Allows selecting underlying TLS provider (`Ring`, `OpenSSL`, `Btls`, `MbedTLS`) with default `Ring` fallback. |
+| **`TLS` Class / Multi-backend TLS** | Configurable TLS provider selection for `rustls`. | Implemented in `src/tls.rs` using `rustls-openssl`, `boring-rustls-provider`, and `ring`. | **Supported** | Allows selecting underlying TLS provider (`Ring`, `OpenSSL`, `Btls`) with default `Ring` fallback. |
 
 ## `no-std` and POSIX Compatibility
 

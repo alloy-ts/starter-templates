@@ -8,7 +8,6 @@ pub enum TlsProvider {
   Ring = 0,
   OpenSSL = 1,
   Btls = 2,
-  MbedTLS = 3,
 }
 
 #[napi]
@@ -38,13 +37,6 @@ impl TLS {
           Arc::new(rustls::crypto::ring::default_provider()),
         ),
       },
-      TlsProvider::MbedTLS => match std::panic::catch_unwind(|| rustls_mbedcrypto_provider::mbedtls_crypto_provider()) {
-        Ok(prov) => (TlsProvider::MbedTLS, Arc::new(prov)),
-        Err(_) => (
-          TlsProvider::Ring,
-          Arc::new(rustls::crypto::ring::default_provider()),
-        ),
-      },
     };
 
     Ok(Self {
@@ -59,7 +51,6 @@ impl TLS {
       TlsProvider::Ring => "ring".to_string(),
       TlsProvider::OpenSSL => "openssl".to_string(),
       TlsProvider::Btls => "btls".to_string(),
-      TlsProvider::MbedTLS => "mbedtls".to_string(),
     }
   }
 
