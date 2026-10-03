@@ -20,6 +20,8 @@ export const argon2HashRawSync = native.argon2HashRawSync;
 export const argon2Verify = native.argon2Verify;
 export const argon2VerifySync = native.argon2VerifySync;
 export const argon2ParseOptions = native.argon2ParseOptions;
+export const argon2 = native.argon2;
+export const argon2Sync = native.argon2Sync;
 
 export const createHash = native.createHash;
 export const hash = native.hash;
@@ -46,6 +48,8 @@ export default {
   argon2Verify,
   argon2VerifySync,
   argon2ParseOptions,
+  argon2,
+  argon2Sync,
   createHash,
   hash,
   getHashes,

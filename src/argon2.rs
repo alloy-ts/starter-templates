@@ -412,3 +412,21 @@ pub fn argon2_parse_options(hashed: Either<String, Uint8Array>) -> Result<Parsed
     salt_len: decoded.salt.len() as u32,
   })
 }
+
+#[napi(js_name = "argon2")]
+pub fn crypto_argon2(
+  password: Either<String, Uint8Array>,
+  options: Option<Options>,
+  abort_signal: Option<AbortSignal>,
+) -> AsyncTask<HashTask> {
+  argon2_hash(password, options, abort_signal)
+}
+
+#[napi(js_name = "argon2Sync")]
+pub fn crypto_argon2_sync(
+  env: Env,
+  password: Either<String, Uint8Array>,
+  options: Option<Options>,
+) -> Result<String> {
+  argon2_hash_sync(env, password, options)
+}
