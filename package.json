@@ -20,6 +20,8 @@
     "start": "vp run src/main.ts",
     "test": "vp test && node --test test.cjs",
     "check": "vp check",
+    "ci": "vp run ci",
+    "ci:local": "node scripts/ci-runner.js --job all",
     "fmt": "vp fmt",
     "lint": "vp lint",
     "prepublishOnly": "vp run build",
@@ -30,6 +32,7 @@
     "@emnapi/runtime": "2.0.0-alpha.5",
     "@napi-rs/cli": "^3.10.5",
     "@types/node": "^26.6.2",
+    "@voidzero-dev/vite-task-client": "^0.2.0",
     "emnapi": "2.0.0-alpha.5",
     "vite-plus": "^1.0.0-rc.1"
   },
@@ -37,9 +40,9 @@
     "typescript": "^7.0.2"
   },
   "overrides": {
-    "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0-rc.1",
     "@emnapi/core": "2.0.0-alpha.5",
-    "@emnapi/runtime": "2.0.0-alpha.5"
+    "@emnapi/runtime": "2.0.0-alpha.5",
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0-rc.1"
   },
   "napi": {
     "binaryName": "my-addon",

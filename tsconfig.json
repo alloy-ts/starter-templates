@@ -6,7 +6,7 @@
     "module": "ESNext",
     "moduleDetection": "force",
     "jsx": "react-jsx",
-    "allowJs": true,
+    "allowJs": false,
     "types": ["node"],
     "allowArbitraryExtensions": true,
 
@@ -29,6 +29,7 @@
     "strict": true,
     "skipLibCheck": true,
     "isolatedModules": true,
+    "isolatedDeclarations": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,

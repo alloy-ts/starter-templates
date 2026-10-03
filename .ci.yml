@@ -1,0 +1,57 @@
+name: Local CI Pipeline
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+env:
+  DEBUG: "napi:*"
+  MACOSX_DEPLOYMENT_TARGET: "10.13"
+
+jobs:
+  check:
+    name: Lint & Typecheck
+    steps:
+      - name: Run code check
+        run: vp check
+
+  build:
+    name: Native Build
+    steps:
+      - name: Build NAPI bindings
+        run: node build.js
+      - name: Pack library
+        run: vp pack
+
+  test:
+    name: Run Unit Tests
+    needs: [build]
+    steps:
+      - name: Run vitest & node test
+        run: vp test && node --test test.cjs
+
+  cross:
+    name: Cross Compilation Matrix
+    strategy:
+      matrix:
+        target:
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
+          - x86_64-pc-windows-msvc
+          - aarch64-pc-windows-msvc
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
+          - wasm32-wasip1-threads
+    steps:
+      - name: Cross-build target native/wasm bindings
+        run: node build.js --target ${{ matrix.target }} -x
+
+  publish:
+    name: Local Publish Dry-Run
+    needs: [build, test]
+    steps:
+      - name: Dry-run publish
+        run: npm publish --dry-run
