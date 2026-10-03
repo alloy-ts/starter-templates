@@ -25,4 +25,7 @@ export default defineConfig({
   run: {
     cache: true,
   },
+  test: {
+    include: ["src/**/*.test.ts"],
+  },
 });
