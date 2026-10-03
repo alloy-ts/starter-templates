@@ -4,6 +4,8 @@ import path from "node:path";
 import process from "node:process";
 import { NapiCli } from "@napi-rs/cli";
 
+const pkgPath = path.resolve(process.cwd(), "package.json");
+const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
 const DEFAULT_TARGET_MATRIX = [
   { target: "x86_64-apple-darwin", flags: "-x" },
   { target: "aarch64-apple-darwin", flags: "-x" },
@@ -20,74 +22,61 @@ const DEFAULT_TARGET_MATRIX = [
   { target: "wasm32-wasip1-threads", flags: "-x" },
 ];
 
-function getPackageTargets() {
-  try {
-    const pkgPath = path.resolve(process.cwd(), "package.json");
-    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
-    const targets = pkg?.napi?.targets;
-    if (Array.isArray(targets) && targets.length > 0) {
-      return targets.map((t) => {
-        const match = DEFAULT_TARGET_MATRIX.find((m) => m.target === t);
-        return match || { target: t, flags: "-x" };
-      });
-    }
-  } catch {
-    // fallback
+const pkgNapiTargets = (pkg.napi?.targets || []).map((t) => {
+  if (typeof t === "string") {
+    const match = DEFAULT_TARGET_MATRIX.find((m) => m.target === t);
+    return match || { target: t, flags: "-x" };
   }
-  return DEFAULT_TARGET_MATRIX;
-}
+  return t;
+});
 
 function parseArgs() {
   const args = process.argv.slice(2);
 
+  const buildAll =
+    args.includes("--target-all") || args.includes("--all") || args.includes("--use-cross");
   const isRelease = args.includes("--release") || args.includes("-r");
-  const useNapiCrossArg = args.includes("--use-napi-cross");
-  const crossCompileArg = args.includes("--cross-compile") || args.includes("-x");
-  const useCrossArg = args.includes("--use-cross");
-  const buildAll = args.includes("--target-all") || args.includes("--all");
   const dryRun = args.includes("--dry-run");
 
-  const targetIdx = args.findIndex((a) => a === "--target" || a === "-t");
-  const targetFilter = targetIdx !== -1 && args[targetIdx + 1] ? args[targetIdx + 1] : null;
+  const useCross = args.includes("--use-cross");
+  const useNapiCross = args.includes("--use-napi-cross");
+  const crossCompile = args.includes("-x") || args.includes("--cross-compile");
+
+  let targetFilter = null;
+  const targetIdx = args.indexOf("--target");
+  if (targetIdx !== -1 && args[targetIdx + 1]) {
+    targetFilter = args[targetIdx + 1];
+  }
 
   return {
     targetFilter,
     isRelease,
-    useNapiCrossArg,
-    crossCompileArg,
-    useCrossArg,
-    buildAll,
     dryRun,
+    buildAll,
+    useCross,
+    useNapiCross,
+    crossCompile,
   };
 }
 
 async function runBuild() {
-  const {
-    targetFilter,
-    isRelease,
-    useNapiCrossArg,
-    crossCompileArg,
-    useCrossArg,
-    buildAll,
-    dryRun,
-  } = parseArgs();
+  const { targetFilter, isRelease, dryRun, buildAll, useCross, useNapiCross, crossCompile } =
+    parseArgs();
 
-  const packageTargets = getPackageTargets();
+  const cli = new NapiCli();
 
   let targetsToBuild = [];
 
   if (targetFilter) {
-    const match = packageTargets.find((t) => t.target === targetFilter);
+    const match = pkgNapiTargets.find((t) => t.target === targetFilter);
     targetsToBuild = match ? [match] : [{ target: targetFilter, flags: "-x" }];
-  } else if (buildAll || useCrossArg) {
-    targetsToBuild = packageTargets;
+  } else if (buildAll) {
+    targetsToBuild = pkgNapiTargets.length > 0 ? pkgNapiTargets : DEFAULT_TARGET_MATRIX;
   } else {
-    targetsToBuild = [{ target: undefined, flags: "" }]; // Default host target
+    targetsToBuild = [{ target: null, flags: "" }];
   }
 
-  console.log(`\n🚀 Starting NAPI Build Pipeline (${targetsToBuild.length} target(s))...`);
-
-  const cli = new NapiCli();
+  console.log(`\n🚀 Starting Local Build Pipeline (${targetsToBuild.length} target(s))...`);
 
   for (const item of targetsToBuild) {
     const target = item.target;
@@ -96,15 +85,14 @@ async function runBuild() {
       (target.includes("gnueabihf") ||
         target.includes("powerpc") ||
         target.includes("s390x") ||
-        item.flags.includes("use-napi-cross"));
+        (item.flags || "").includes("use-napi-cross"));
 
-    const useNapiCross = useNapiCrossArg || isNapiCrossTarget;
-    const crossCompile = crossCompileArg || (Boolean(target) && !useNapiCross);
-    const useCross = useCrossArg;
+    const effectiveUseNapiCross = useNapiCross || (target ? isNapiCrossTarget : false);
+    const effectiveCrossCompile = crossCompile || (target ? !isNapiCrossTarget : false);
 
-    console.log(`\n⚙️  Building target: ${target || "host default"}`);
+    console.log(`\n⚙️  Building target: ${target || "default host"}`);
     if (dryRun) {
-      console.log(`   [Dry Run] Skipped execution.`);
+      console.log(`   [Dry Run] Skipped build execution for ${target || "default host"}.`);
       continue;
     }
 
@@ -113,9 +101,9 @@ async function runBuild() {
         platform: true,
         esm: true,
         release: isRelease,
-        target,
-        useNapiCross,
-        crossCompile,
+        target: target || undefined,
+        useNapiCross: effectiveUseNapiCross,
+        crossCompile: effectiveCrossCompile,
         useCross,
         outputDir: "artifacts",
       });
@@ -130,9 +118,9 @@ async function runBuild() {
         }
       }
 
-      console.log(`✅ Target ${target || "host default"} built successfully.`);
+      console.log(`✅ Target ${target || "default host"} built successfully.`);
     } catch (err) {
-      console.error(`❌ Target ${target || "host default"} failed:`, err.message);
+      console.error(`❌ Target ${target || "default host"} failed to build:`, err.message);
       if (!buildAll) {
         process.exit(1);
       }

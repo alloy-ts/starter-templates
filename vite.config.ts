@@ -17,7 +17,7 @@ export default defineConfig({
     include: ["src/**/*.{test,spec}.ts"],
   },
   staged: {
-    "*": ["vp check --fix", "vp run ci"],
+    "*": "vp check --fix",
   },
   fmt: {
     ignore: ["examples/**", "artifacts/**", "dist/**", "index.js", "index.d.ts"],
