@@ -1,5 +1,5 @@
 [package]
-name = "my-addon-native"
+name = "lib_crypto_native"
 version = "0.1.0"
 edition = "2024"
 
@@ -7,8 +7,40 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
+aes-gcm = "0.11.1"
+aes-siv = "0.8.0"
+argon2-rust = "1.1.0"
+base64 = "0.23.1"
+boring-rustls-provider = "5.0.1"
+ccm = "0.6.1"
+chacha20poly1305 = "0.11.0"
+ed25519-dalek = "3.0.0"
+hex = "0.4.3"
+hkdf = "0.13.0"
+hmac = "0.13.0"
+md-5 = "0.11.0"
 napi = "3"
 napi-derive = "3"
+p256 = { version = "0.14.0", features = ["ecdh", "arithmetic", "std"] }
+p384 = { version = "0.14.0", features = ["ecdh", "arithmetic", "std"] }
+p521 = { version = "0.14.0", features = ["ecdh", "arithmetic", "std"] }
+pbkdf2 = "0.13.0"
+pkcs8 = "0.10.2"
+rand = "0.10.3"
+rcgen = "0.14.10"
+ring = "0.17.14"
+rsa = { version = "0.9.10", features = ["pem", "sha2"] }
+rustls = "0.23.45"
+rustls-openssl = "0.4.2"
+sec1 = "0.8.1"
+sha1 = "0.11.0"
+sha2 = "0.11.0"
+simdutf8 = "0.1.5"
+subtle = "2.6.1"
+uuid = { version = "1.27.0", features = ["v4", "v7"] }
+x25519-dalek = { version = "3.0.0", features = ["static_secrets"] }
+x509-parser = "0.18.1"
+zeroize = "1.9.0"
 
 [build-dependencies]
 napi-build = "2"

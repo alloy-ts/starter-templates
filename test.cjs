@@ -1,8 +1,9 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { add } = require("./index.js");
+const { randomBytes } = require("./dist/index.js");
 
-test("adds two numbers", () => {
-  assert.equal(add(2, 3), 5);
+test("generates random bytes", () => {
+  const buf = randomBytes(16);
+  assert.equal(buf.length, 16);
 });
