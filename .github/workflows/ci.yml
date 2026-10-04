@@ -52,8 +52,6 @@ jobs:
             flags: "--use-napi-cross"
           - target: s390x-unknown-linux-gnu
             flags: "--use-napi-cross"
-          - target: wasm32-wasip1-threads
-            flags: "-x"
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust toolchain

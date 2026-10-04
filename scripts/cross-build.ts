@@ -48,12 +48,11 @@ function getTargetMatrix(): TargetMatrixEntry[] {
       "aarch64-pc-windows-msvc",
       "x86_64-unknown-linux-gnu",
       "aarch64-unknown-linux-gnu",
+      "armv7-unknown-linux-gnueabihf",
       "x86_64-unknown-linux-musl",
       "aarch64-unknown-linux-musl",
-      "armv7-unknown-linux-gnueabihf",
       "powerpc64le-unknown-linux-gnu",
       "s390x-unknown-linux-gnu",
-      "wasm32-wasip1-threads",
     ];
   }
 
