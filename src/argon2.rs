@@ -36,6 +36,18 @@ impl Algorithm {
       Argon2Algorithm::Argon2id => Self::Argon2id,
     }
   }
+
+  fn parse(s: &str) -> Result<Argon2Algorithm> {
+    match s.to_lowercase().as_str() {
+      "argon2d" => Ok(Argon2Algorithm::Argon2d),
+      "argon2i" => Ok(Argon2Algorithm::Argon2i),
+      "argon2id" => Ok(Argon2Algorithm::Argon2id),
+      _ => Err(Error::new(
+        Status::InvalidArg,
+        format!("Unsupported Argon2 algorithm: {s}"),
+      )),
+    }
+  }
 }
 
 #[napi]
@@ -91,6 +103,18 @@ pub struct ParsedHashOptions {
   pub salt_len: u32,
 }
 
+#[napi(object)]
+pub struct Argon2Parameters {
+  pub message: Either<String, Uint8Array>,
+  pub nonce: Either<String, Uint8Array>,
+  pub parallelism: u32,
+  pub tag_length: u32,
+  pub memory: u32,
+  pub passes: u32,
+  pub secret: Option<Either<String, Uint8Array>>,
+  pub associated_data: Option<Either<String, Uint8Array>>,
+}
+
 impl Options {
   fn algorithm(&self) -> Argon2Algorithm {
     self
@@ -143,6 +167,20 @@ impl Options {
       self.version(),
       self.params()?,
     ))
+  }
+}
+
+fn input_bytes(val: Either<String, Uint8Array>) -> Vec<u8> {
+  match val {
+    Either::A(s) => s.into_bytes(),
+    Either::B(b) => b.as_ref().to_vec(),
+  }
+}
+
+fn opt_input_bytes(val: Option<Either<String, Uint8Array>>) -> Vec<u8> {
+  match val {
+    Some(v) => input_bytes(v),
+    None => Vec::new(),
   }
 }
 
@@ -413,20 +451,71 @@ pub fn argon2_parse_options(hashed: Either<String, Uint8Array>) -> Result<Parsed
   })
 }
 
+pub struct NodeArgon2Task {
+  algorithm: String,
+  params: Argon2Parameters,
+}
+
+#[napi]
+impl Task for NodeArgon2Task {
+  type Output = Vec<u8>;
+  type JsValue = Buffer;
+
+  fn compute(&mut self) -> Result<Self::Output> {
+    let algo = Algorithm::parse(&self.algorithm)?;
+    let msg = input_bytes(std::mem::replace(
+      &mut self.params.message,
+      Either::A(String::new()),
+    ));
+    let nonce = input_bytes(std::mem::replace(
+      &mut self.params.nonce,
+      Either::A(String::new()),
+    ));
+    let secret = opt_input_bytes(self.params.secret.take());
+    let ad = opt_input_bytes(self.params.associated_data.take());
+
+    let params = Params::builder()
+      .memory(Memory::kib(self.params.memory as u64))
+      .passes(self.params.passes)
+      .lanes(self.params.parallelism)
+      .threads(thread_budget(self.params.parallelism))
+      .tag_len(TagLen::bytes(self.params.tag_length as u64))
+      .build()
+      .map_err(map_error)?;
+
+    let argon2 = Argon2::new(algo, Argon2Version::default(), params);
+    let derived = argon2
+      .hash_with_ad(&msg, &nonce, &secret, &ad)
+      .map_err(map_error)?;
+    Ok(derived)
+  }
+
+  fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
+    Ok(output.into())
+  }
+}
+
 #[napi(js_name = "argon2")]
 pub fn crypto_argon2(
-  password: Either<String, Uint8Array>,
-  options: Option<Options>,
-  abort_signal: Option<AbortSignal>,
-) -> AsyncTask<HashTask> {
-  argon2_hash(password, options, abort_signal)
+  algorithm: String,
+  parameters: Argon2Parameters,
+) -> AsyncTask<NodeArgon2Task> {
+  AsyncTask::new(NodeArgon2Task {
+    algorithm,
+    params: parameters,
+  })
 }
 
 #[napi(js_name = "argon2Sync")]
 pub fn crypto_argon2_sync(
   env: Env,
-  password: Either<String, Uint8Array>,
-  options: Option<Options>,
-) -> Result<String> {
-  argon2_hash_sync(env, password, options)
+  algorithm: String,
+  parameters: Argon2Parameters,
+) -> Result<Buffer> {
+  let mut task = NodeArgon2Task {
+    algorithm,
+    params: parameters,
+  };
+  let output = task.compute()?;
+  task.resolve(env, output)
 }

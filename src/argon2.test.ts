@@ -31,19 +31,24 @@ test('argon2 hash and verify sync', () => {
   assert.equal(isInvalid, false);
 });
 
-test('crypto.argon2 and crypto.argon2Sync aliases', async () => {
-  const password = 'alias-password';
-  const hashedSync = argon2Sync(password, {
-    timeCost: 2,
-    memoryCost: 4096,
-  });
-  assert.ok(hashedSync.startsWith('$argon2id$'));
+test('crypto.argon2 and crypto.argon2Sync node:crypto contract', async () => {
+  const params = {
+    message: 'password',
+    nonce: '0123456789abcdef',
+    parallelism: 1,
+    tagLength: 32,
+    memory: 4096,
+    passes: 2,
+  };
 
-  const hashedAsync = await argon2(password, {
-    timeCost: 2,
-    memoryCost: 4096,
-  });
-  assert.ok(hashedAsync.startsWith('$argon2id$'));
+  const derivedSync = argon2Sync('argon2id', params);
+  assert.ok(Buffer.isBuffer(derivedSync));
+  assert.equal(derivedSync.length, 32);
+
+  const derivedAsync = await argon2('argon2id', params);
+  assert.ok(Buffer.isBuffer(derivedAsync));
+  assert.equal(derivedAsync.length, 32);
+  assert.deepEqual(derivedAsync, derivedSync);
 });
 
 test('argon2 raw hash sync', () => {
