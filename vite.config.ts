@@ -40,7 +40,7 @@ export default defineConfig({
       },
     },
     "task:ci:test": {
-      command: "vp test src/main.test.ts",
+      command: "vp test src/*.test.ts",
     },
     "task:ci:cross-build": {
       command: "node scripts/ci.ts --job cross-build",

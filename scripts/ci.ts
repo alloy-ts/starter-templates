@@ -32,7 +32,7 @@ export function runCiCrossBuild() {
 }
 
 export function runCiTest() {
-  runStep("Test (Unit Tests)", "npx vp test src/main.test.ts");
+  runStep("Test (Unit Tests)", "npx vp test src/*.test.ts");
 }
 
 export function runCiPublish() {

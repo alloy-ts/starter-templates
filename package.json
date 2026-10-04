@@ -1,8 +1,12 @@
 {
-  "name": "my-addon",
+  "name": "@lib/crypto",
   "version": "0.1.0",
   "files": [
-    "dist"
+    "dist",
+    "index.js",
+    "index.cjs",
+    "index.d.ts",
+    "*.node"
   ],
   "type": "module",
   "types": "index.d.ts",
@@ -15,7 +19,7 @@
     "build:release": "node build.js --platform --release",
     "dev": "vp pack --watch",
     "start": "vp run src/main.ts",
-    "test": "node --test test.cjs",
+    "test": "vp test src/*.test.ts",
     "check": "vp check",
     "fmt": "vp fmt",
     "lint": "vp lint",
@@ -24,7 +28,7 @@
     "ci": "node scripts/ci.ts",
     "ci:check": "vp check package.json vite.config.ts src/ scripts/ build.js build.mjs",
     "ci:build": "node build.js --platform",
-    "ci:test": "vp test src/main.test.ts",
+    "ci:test": "vp test src/*.test.ts",
     "ci:cross-build": "node scripts/ci.ts --job cross-build",
     "ci:publish": "vp pack"
   },
@@ -41,7 +45,7 @@
     "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0"
   },
   "napi": {
-    "binaryName": "my-addon",
+    "binaryName": "crypto",
     "targets": [
       "x86_64-apple-darwin",
       "aarch64-apple-darwin",
