@@ -1,0 +1,19 @@
+name: Local CI Job
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: local
+    steps:
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: "22"
+          cache: true
+
+      - run: vp install
+      - run: vp check
+      - run: vp test
+      - run: vp run ci:pipeline
