@@ -56,9 +56,26 @@ jobs:
             flags: "-x"
     steps:
       - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: ${{ matrix.settings.target }}
+      - name: Install ziglang
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.1
+      - name: Install cargo toolchains
+        uses: taiki-e/install-action@v2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          tool: cargo-zigbuild,cargo-xwin
       - uses: voidzero-dev/setup-vp@v1.21.1
         with:
           node-version: "22"
           cache: true
       - run: vp install
       - run: vp run ci:build --target ${{ matrix.settings.target }} ${{ matrix.settings.flags }}
+        env:
+          XWIN_CACHE_DIR: ${{ github.workspace }}/.xwin
