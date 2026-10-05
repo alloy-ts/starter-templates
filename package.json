@@ -13,15 +13,21 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "node build.js && vp pack",
-    "build:napi": "node build.js",
-    "build:release": "node build.js --release",
+    "build": "node build.ts && vp pack",
+    "build:napi": "node build.ts",
+    "build:release": "node build.ts --release",
     "dev": "vp pack --watch",
     "start": "vp run src/main.ts",
-    "test": "vp test && node --test test.cjs",
+    "test": "vp test",
     "check": "vp check",
     "fmt": "vp fmt",
     "lint": "vp lint",
+    "ci": "vp run ci",
+    "ci:check": "vp run ci:check",
+    "ci:build": "vp run ci:build",
+    "ci:test": "vp run ci:test",
+    "ci:cross-build": "vp run ci:cross-build",
+    "ci:publish": "vp run ci:publish",
     "prepublishOnly": "vp run build",
     "prepare": "vp config"
   },
@@ -30,14 +36,15 @@
     "@emnapi/runtime": "^1.11.3",
     "@napi-rs/cli": "^3.10.5",
     "@types/node": "^26.6.2",
+    "@voidzero-dev/vite-task-client": "^0.2.0",
     "emnapi": "^1.11.3",
-    "vite-plus": "^1.0.0-rc.1"
+    "vite-plus": "1.0.0"
   },
   "peerDependencies": {
     "typescript": "^7.0.2"
   },
   "overrides": {
-    "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0-rc.1"
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0"
   },
   "napi": {
     "binaryName": "my-addon",
