@@ -7,7 +7,7 @@ export default defineConfig({
     outDir: "dist",
     exports: true,
     dts: {
-      generator: "tsgo",
+      generator: "oxc",
     },
     deps: {
       resolveDepSubpath: true,
@@ -26,9 +26,33 @@ export default defineConfig({
     ignorePatterns: ["examples/**"],
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
     rules: { "vite-plus/prefer-vite-plus-imports": "error" },
-    options: { typeAware: true, typeCheck: true },
   },
   run: {
     cache: true,
+    tasks: {
+      "ci:pipeline": {
+        command: "node scripts/ci.ts",
+        cache: {
+          env: ["CI", "NODE_ENV"],
+        },
+      },
+      "ci:build": {
+        command: "node scripts/build.ts",
+        cache: {
+          input: [{ auto: true }, "!dist/**"],
+          output: ["dist/**"],
+        },
+      },
+      "ci:cross-build": {
+        command: "node scripts/cross-build.ts",
+        cache: {
+          input: [{ auto: true }, "!dist/**"],
+          output: ["dist/**"],
+        },
+      },
+      "ci:test": {
+        command: "vp test",
+      },
+    },
   },
 });
