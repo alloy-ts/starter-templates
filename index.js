@@ -1,0 +1,47 @@
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const binding = require('./index.cjs');
+
+export const {
+  createHash,
+  getHashes,
+  CryptoHasher,
+  Hmac,
+  createHmac,
+  pbkdf2,
+  pbkdf2Sync,
+  argon2,
+  argon2Sync,
+  hkdf,
+  hkdfSync,
+  cipherEncrypt,
+  cipherDecrypt,
+  Ecdh,
+  createEcdh,
+  getCurves,
+  generateKeyPair,
+  generateKeyPairSync,
+  randomBytes,
+  randomFillSync,
+  randomInt,
+  randomUuid,
+  randomUuidV7,
+  KeyType,
+  KeyObject,
+  X509Certificate,
+  createSecretKey,
+  createPublicKey,
+  createPrivateKey,
+  diffieHellman,
+  encapsulate,
+  decapsulate,
+  Sign,
+  Verify,
+  createSign,
+  createVerify,
+  Tls,
+  parsePkcs8Pem,
+  exportPkcs8Pem,
+} = binding;
+
+export default binding;

@@ -99,7 +99,7 @@ async function runBuild() {
       const buildOpts = {
         ...options,
         cwd: options.cwd || process.cwd(),
-        outputDir: options.outputDir || "./build",
+        outputDir: options.outputDir || "./dist",
         release: isRelease,
         cargoOptions: buildCommand.cargoOptions,
       };
@@ -114,16 +114,17 @@ async function runBuild() {
       const { task } = await cli.build(buildOpts);
       await task;
 
-      // Copy generated .node files, index.js as index.cjs, and index.d.ts to root
+      // Copy generated .node, .wasm, .wasi.cjs, index.js (as index.cjs), and index.d.ts to dist and root
       const outputDir = path.resolve(process.cwd(), buildOpts.outputDir);
       if (fs.existsSync(outputDir)) {
         const files = fs.readdirSync(outputDir);
         for (const file of files) {
-          if (file.endsWith(".node")) {
+          if (file.endsWith(".node") || file.endsWith(".wasm") || file.endsWith(".wasi.cjs")) {
             fs.copyFileSync(path.join(outputDir, file), path.join(process.cwd(), file));
           }
           if (file === "index.js") {
             fs.copyFileSync(path.join(outputDir, file), path.join(process.cwd(), "index.cjs"));
+            fs.copyFileSync(path.join(outputDir, file), path.join(outputDir, "index.cjs"));
           }
           if (file === "index.d.ts") {
             fs.copyFileSync(path.join(outputDir, file), path.join(process.cwd(), "index.d.ts"));
