@@ -1,29 +1,57 @@
 {
-  "name": "my-addon",
+  "name": "@lib/crypto",
   "version": "0.1.0",
-  "main": "index.js",
-  "types": "index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "index.js",
+    "index.cjs",
+    "index.d.ts",
+    "*.node"
   ],
+  "type": "module",
+  "main": "index.cjs",
+  "module": "index.js",
+  "types": "index.d.ts",
   "exports": {
-    ".": "./index.js",
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "require": "./index.cjs"
+    },
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "node build.mjs --platform",
-    "build:release": "node build.mjs --platform --release",
+    "build": "node build.js --platform",
+    "build:release": "node build.js --platform --release",
     "dev": "vp pack --watch",
     "start": "vp run src/main.ts",
-    "test": "node --test test.cjs",
+    "test": "vp test src/*.test.ts",
     "check": "vp check",
     "fmt": "vp fmt",
     "lint": "vp lint",
     "prepublishOnly": "vp run build",
-    "prepare": "vp config"
+    "prepare": "vp config",
+    "ci": "node scripts/ci.ts",
+    "ci:check": "vp check package.json vite.config.ts src/ scripts/ build.js build.mjs",
+    "ci:build": "node build.js --platform",
+    "ci:test": "vp test src/*.test.ts",
+    "ci:cross-build": "node scripts/ci.ts --job cross-build",
+    "ci:publish": "vp pack"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3",
+    "@types/node": "^26.6.2",
+    "@voidzero-dev/vite-task-client": "^0.2.0",
+    "vite-plus": "^1.0.0"
+  },
+  "peerDependencies": {
+    "typescript": "^7.0.2"
+  },
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0"
   },
   "napi": {
-    "binaryName": "my-addon",
+    "binaryName": "crypto",
     "targets": [
       "x86_64-apple-darwin",
       "aarch64-apple-darwin",
@@ -40,17 +68,6 @@
       "x86_64-unknown-freebsd",
       "wasm32-wasip1-threads"
     ]
-  },
-  "devDependencies": {
-    "@napi-rs/cli": "^3",
-    "@types/node": "^26.6.2",
-    "vite-plus": "^1.0.0-rc.1"
-  },
-  "peerDependencies": {
-    "typescript": "^7.0.2"
-  },
-  "overrides": {
-    "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0-rc.1"
   },
   "devEngines": {
     "packageManager": {

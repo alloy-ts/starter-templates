@@ -1,7 +1,11 @@
 # compiled output files and executables
 build
 out
-dist
+dist/*
+!dist/*.node
+!dist/*.cjs
+!dist/*.js
+!dist/*.d.ts
 target
 
 # dependencies
@@ -12,7 +16,6 @@ node_modules
 logs
 *.log
 
-# NAPI generated files
-*.node
-index.js
-index.d.ts
+# Allow committing prebuilt .node files for distribution
+!*.node
+!dist/*.node
