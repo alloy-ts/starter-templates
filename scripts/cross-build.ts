@@ -76,21 +76,18 @@ function parseArgs() {
 
   let targetFilter: string | null = null;
   const targetIdx = args.indexOf("--target");
-  if (targetIdx !== -1 && args[targetIdx + 1] && !args[targetIdx + 1].startsWith("-")) {
-    targetFilter = args[targetIdx + 1];
+  if (targetIdx !== -1 && args[targetIdx + 1] && !args[targetIdx + 1]!.startsWith("-")) {
+    targetFilter = args[targetIdx + 1] ?? null;
   } else {
     const tIdx = args.indexOf("-t");
-    if (tIdx !== -1 && args[tIdx + 1] && !args[tIdx + 1].startsWith("-")) {
-      targetFilter = args[tIdx + 1];
+    if (tIdx !== -1 && args[tIdx + 1] && !args[tIdx + 1]!.startsWith("-")) {
+      targetFilter = args[tIdx + 1] ?? null;
     }
   }
 
   const filteredArgs = args.filter(
     (arg) =>
-      arg !== "--target-all" &&
-      arg !== "--all" &&
-      arg !== "--dry-run" &&
-      arg !== "--build-all",
+      arg !== "--target-all" && arg !== "--all" && arg !== "--dry-run" && arg !== "--build-all",
   );
 
   return {
@@ -106,8 +103,7 @@ function parseArgs() {
 }
 
 async function runLocalCI() {
-  // Leverage vite-task-client for tracking task environment variables if running under VP Task Runner
-  const debugEnv = getEnv("DEBUG") || process.env.DEBUG;
+  const debugEnv = getEnv("DEBUG") || process.env["DEBUG"];
   if (debugEnv) {
     console.log(`[Local CI] Running with DEBUG=${debugEnv}`);
   }
@@ -132,9 +128,7 @@ async function runLocalCI() {
 
   if (targetFilter) {
     const match = TARGET_MATRIX.find((t) => t.target === targetFilter);
-    targetsToBuild = match
-      ? [match]
-      : [{ target: targetFilter, flags: "-x" }];
+    targetsToBuild = match ? [match] : [{ target: targetFilter, flags: "-x" }];
   } else if (buildAll) {
     targetsToBuild = TARGET_MATRIX;
   } else {
@@ -163,23 +157,41 @@ async function runLocalCI() {
     }
 
     try {
+      const outputDir = options.outputDir || "dist/artifacts";
       const buildOpts: Record<string, any> = {
         ...options,
         cwd: options.cwd || process.cwd(),
-        outputDir: options.outputDir || "./dist",
+        outputDir,
         release: isRelease,
         cargoOptions: buildCommand.cargoOptions,
       };
 
       if (target) {
-        buildOpts.target = target;
+        buildOpts["target"] = target;
       }
-      if (useCross) buildOpts.useCross = true;
-      if (effectiveUseNapiCross) buildOpts.useNapiCross = true;
-      if (effectiveCrossCompile) buildOpts.crossCompile = true;
+      if (useCross) buildOpts["useCross"] = true;
+      if (effectiveUseNapiCross) buildOpts["useNapiCross"] = true;
+      if (effectiveCrossCompile) buildOpts["crossCompile"] = true;
 
       const { task } = await cli.build(buildOpts as any);
       await task;
+
+      // Sync artifacts to root
+      const outPath = path.resolve(process.cwd(), outputDir);
+      if (fs.existsSync(outPath)) {
+        const files = fs.readdirSync(outPath);
+        for (const file of files) {
+          if (file.endsWith(".node")) {
+            fs.copyFileSync(
+              path.join(outPath, file),
+              path.resolve(process.cwd(), "lib-crypto.node"),
+            );
+          } else if (file.endsWith(".d.ts")) {
+            fs.copyFileSync(path.join(outPath, file), path.resolve(process.cwd(), "index.d.ts"));
+          }
+        }
+      }
+
       console.log(`✅ Target ${target || "default host"} built successfully.`);
     } catch (err: any) {
       console.error(`❌ Target ${target || "default host"} failed to build:`, err?.message || err);
