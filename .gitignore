@@ -2,8 +2,10 @@
 build
 out
 dist
+!dist/*.node
+artifacts
 target
-*.node
+!*.node
 *.wasm
 *.wasi.cjs
 *.wasi.d.cts
