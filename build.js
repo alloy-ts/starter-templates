@@ -105,15 +105,15 @@ async function runBuild() {
         useNapiCross: effectiveUseNapiCross,
         crossCompile: effectiveCrossCompile,
         useCross,
-        outputDir: "artifacts",
+        outputDir: "dist",
       });
 
-      const artifactsDir = path.resolve(process.cwd(), "artifacts");
-      if (fs.existsSync(artifactsDir)) {
-        const files = fs.readdirSync(artifactsDir);
+      const distDir = path.resolve(process.cwd(), "dist");
+      if (fs.existsSync(distDir)) {
+        const files = fs.readdirSync(distDir);
         for (const file of files) {
           if (file.endsWith(".node") || file.endsWith(".js") || file.endsWith(".wasm")) {
-            fs.copyFileSync(path.join(artifactsDir, file), path.join(process.cwd(), file));
+            fs.copyFileSync(path.join(distDir, file), path.join(process.cwd(), file));
           }
         }
       }

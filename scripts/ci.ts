@@ -49,8 +49,8 @@ async function main(): Promise<void> {
 
   if (jobToRun === "build" || jobToRun === "all") {
     console.log(`\n--- Running Job: build ---`);
-    runCommand("node build.js");
     runCommand("vp pack");
+    runCommand("node build.js");
   }
 
   if (jobToRun === "test" || jobToRun === "all") {
