@@ -6,7 +6,7 @@ test('crypto native exports', () => {
   assert.equal(typeof crypto.createHash, 'function')
   assert.equal(typeof crypto.createHmac, 'function')
   assert.equal(typeof crypto.pbkdf2Sync, 'function')
-  assert.equal(typeof crypto.argon2HashSync, 'function')
+  assert.equal(typeof crypto.argon2Sync, 'function')
   assert.equal(typeof crypto.Tls, 'function')
 
   const hash = crypto.createHash('sha256').update('hello').digest('hex')

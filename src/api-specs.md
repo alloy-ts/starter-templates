@@ -18,7 +18,6 @@ This document tabulates the standard `node:crypto` API, our native NAPI-RS imple
 | | `crypto.pbkdf2Sync(password, salt, iterations, keylen, digest)` | Sync PBKDF2 key derivation. | Implemented in `src/pbkdf2.rs` using `ring::pbkdf2`. | **Supported** | Returns derived key as Buffer. |
 | **Argon2** | `crypto.argon2(algorithm, parameters, callback)` | Async Argon2 key derivation (`argon2d`, `argon2i`, `argon2id`). | Implemented in `src/argon2.rs` using `argon2-rust`. | **Supported** | Accepts `algorithm` string and `Argon2Parameters` (`message`, `nonce`, `parallelism`, `tagLength`, `memory`, `passes`, `secret`, `associatedData`). |
 | | `crypto.argon2Sync(algorithm, parameters)` | Sync Argon2 key derivation. | Implemented in `src/argon2.rs` using `argon2-rust`. | **Supported** | Synchronous Argon2 derivation matching `node:crypto` signature. |
-| | `argon2Hash` / `argon2Verify` / `argon2ParseOptions` | Extended helper utilities for Argon2 PHC string hashing and verification. | Implemented in `src/argon2.rs`. | **Supported Extension** | Supports PHC string parsing & verification. |
 | **TLS** | `TLS` Class | Multi-backend TLS provider selection. | Implemented in `src/tls.rs`. | **Supported Extension** | Configurable providers: `Ring` (default), `OpenSSL`, `Btls` (BoringSSL). |
 
 ## `no-std` and POSIX Compatibility

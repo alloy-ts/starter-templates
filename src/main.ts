@@ -10,16 +10,6 @@ export const TLS = native.Tls;
 export const Tls = native.Tls;
 export const TlsProvider = native.TlsProvider;
 
-export const Algorithm = native.Algorithm;
-export const Version = native.Version;
-
-export const argon2Hash = native.argon2Hash;
-export const argon2HashSync = native.argon2HashSync;
-export const argon2HashRaw = native.argon2HashRaw;
-export const argon2HashRawSync = native.argon2HashRawSync;
-export const argon2Verify = native.argon2Verify;
-export const argon2VerifySync = native.argon2VerifySync;
-export const argon2ParseOptions = native.argon2ParseOptions;
 export const argon2 = native.argon2;
 export const argon2Sync = native.argon2Sync;
 
@@ -39,15 +29,6 @@ export default {
   TLS,
   Tls,
   TlsProvider,
-  Algorithm,
-  Version,
-  argon2Hash,
-  argon2HashSync,
-  argon2HashRaw,
-  argon2HashRawSync,
-  argon2Verify,
-  argon2VerifySync,
-  argon2ParseOptions,
   argon2,
   argon2Sync,
   createHash,
