@@ -1,9 +1,10 @@
 # compiled output files and executables
 build
 out
-dist
+dist/*
+!dist/*.node
 target
-*.node
+!*.node
 *.wasm
 *.wasi.cjs
 *.wasi.d.cts
