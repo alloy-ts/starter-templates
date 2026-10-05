@@ -88,7 +88,9 @@ async function runBuild() {
         (item.flags || "").includes("use-napi-cross"));
 
     const effectiveUseNapiCross = useNapiCross || (target ? isNapiCrossTarget : false);
-    const effectiveCrossCompile = crossCompile || (target ? !isNapiCrossTarget : false);
+    const effectiveCrossCompile = effectiveUseNapiCross
+      ? false
+      : crossCompile || (target ? !isNapiCrossTarget : false);
 
     console.log(`\n⚙️  Building target: ${target || "default host"}`);
     if (dryRun) {
@@ -97,16 +99,24 @@ async function runBuild() {
     }
 
     try {
-      await cli.build({
-        platform: true,
-        esm: true,
-        release: isRelease,
-        target: target || undefined,
-        useNapiCross: effectiveUseNapiCross,
-        crossCompile: effectiveCrossCompile,
-        useCross,
-        outputDir: "dist",
-      });
+      const buildResult = await cli
+        .build({
+          platform: true,
+          esm: true,
+          release: isRelease,
+          target: target || undefined,
+          useNapiCross: effectiveUseNapiCross,
+          crossCompile: effectiveCrossCompile,
+          useCross,
+          outputDir: "dist",
+        })
+        .catch((e) => {
+          throw e;
+        });
+
+      if (buildResult && buildResult.task) {
+        await buildResult.task;
+      }
 
       const distDir = path.resolve(process.cwd(), "dist");
       if (fs.existsSync(distDir)) {
@@ -120,7 +130,7 @@ async function runBuild() {
 
       console.log(`✅ Target ${target || "default host"} built successfully.`);
     } catch (err) {
-      console.error(`❌ Target ${target || "default host"} failed to build:`, err.message);
+      console.error(`❌ Target ${target || "default host"} failed to build:`, err?.message || err);
       if (!buildAll) {
         process.exit(1);
       }

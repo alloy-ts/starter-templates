@@ -61,7 +61,7 @@ async function main(): Promise<void> {
 
   if (jobToRun === "cross" || jobToRun === "all") {
     console.log(`\n--- Running Job: cross ---`);
-    runCommand("node build.js --target-all -x --dry-run");
+    runCommand("node build.js --target-all -x");
   }
 
   if (jobToRun === "publish" || jobToRun === "all") {
