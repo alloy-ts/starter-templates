@@ -48,7 +48,15 @@ This template is configured to run all CI jobs locally without requiring externa
 
 ## Architecture & Features
 
-### 1. Vite Task Runner & Task Caching (`@voidzero-dev/vite-task-client`)
+### 1. Pure Local CI Runner
+
+All CI jobs run completely offline/locally without requiring cloud CI services (no `.github/` workflows required). Standalone job declarations are specified in `.ci/job.yml`.
+
+### 2. Prebuilt `.node` Distribution
+
+Build artifacts in `dist/` are configured via `.gitignore` (`!dist/*.node`) so that compiled native `.node` binaries can be committed directly for direct prebuilt distribution without requiring end-users to compile native C/Rust code.
+
+### 3. Vite Task Runner & Task Caching (`@voidzero-dev/vite-task-client`)
 
 CI tasks are configured in `vite.config.ts` under `run.tasks`:
 
@@ -56,19 +64,18 @@ CI tasks are configured in `vite.config.ts` under `run.tasks`:
 - `ci:build`: Runs `scripts/build.ts` with automatic file system & cache output tracking (`dist/**`).
 - `ci:cross-build`: Runs `scripts/cross-build.ts` across the target matrix.
 
-When a task inputs have not changed, Vite Task replays cached terminal output and restores saved build outputs instantly.
+When task inputs have not changed, Vite Task replays cached terminal output and restores saved build outputs instantly.
 
-### 2. Lightweight Native Execution vs Containers / MicroVMs
+### 4. Lightweight Native Execution vs Containers / MicroVMs
 
 For cross-compiling native modules (such as NAPI-RS addons), the local CI pipeline uses:
 
 - Node.js runtime scripts (`scripts/build.ts`, `scripts/cross-build.ts`, `scripts/ci.ts`) with `#!/usr/bin/env node` shebangs.
 - Native cross-compilation toolchains (`cargo-zigbuild`, `cargo-xwin`, `@napi-rs/cli` `--use-napi-cross`, `-x`).
-- WASM target execution (`wasm32-wasip1-threads`) directly via Node.js WASM runtime.
 
 This avoids the overhead of Docker containers or microVMs while running cross-builds natively on your host OS.
 
-### 3. Pre-Commit Hooks
+### 5. Pre-Commit Hooks
 
 Local checks are automatically triggered on staged files during git pre-commit:
 
@@ -77,19 +84,3 @@ npm run prepare # configures local hooks via vp config
 ```
 
 The `staged` configuration in `vite.config.ts` automatically runs `vp check --fix` on staged files.
-
-### 4. YAML Job Script Support
-
-For compatibility with CI runners or GitHub Actions, `.ci/job.yml` and `.github/workflows/ci.yml` provide declarative YAML definitions using:
-
-```yaml
-- uses: voidzero-dev/setup-vp@v1
-  with:
-    node-version: "22"
-    cache: true
-
-- run: vp install
-- run: vp check
-- run: vp test
-- run: vp run ci:pipeline
-```

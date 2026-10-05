@@ -1,15 +1,20 @@
 # compiled output files and executables
 build
 out
-dist
+dist/*
+!dist/*.node
 target
-*.node
 *.wasm
 *.wasi.cjs
 *.wasi.d.cts
 *.wasi-browser.js
 wasi-worker*.mjs
 browser.js
+
+# temporary build files
+.*.swp
+.napi-rs-filesystem-reconciliation.*
+.dist.napi-stage-*
 
 # dependencies
 vendor
