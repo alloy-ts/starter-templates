@@ -2,7 +2,7 @@
 
 This document tabulates the standard `node:crypto` API, our native NAPI-RS implementations, and their compatibility status.
 
-## Standard `node:crypto` API Specifications & Compatibility Status
+## Standard `node:crypto` Core Methods & Classes Matrix
 
 | Category / Class | API / Method | `node:crypto` Contract / Specification | `@lib/crypto` Implementation | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -19,7 +19,7 @@ This document tabulates the standard `node:crypto` API, our native NAPI-RS imple
 | **Argon2** | `crypto.argon2(algorithm, parameters, callback)` | Async Argon2 key derivation (`argon2d`, `argon2i`, `argon2id`). | Implemented in `src/argon2.rs` using `argon2-rust`. | **Supported** | Accepts `algorithm` string and `Argon2Parameters` (`message`, `nonce`, `parallelism`, `tagLength`, `memory`, `passes`, `secret`, `associatedData`). |
 | | `crypto.argon2Sync(algorithm, parameters)` | Sync Argon2 key derivation. | Implemented in `src/argon2.rs` using `argon2-rust`. | **Supported** | Synchronous Argon2 derivation matching `node:crypto` signature. |
 | **TLS** | `TLS` Class | Multi-backend TLS provider selection. | Implemented in `src/tls.rs`. | **Supported Extension** | Configurable providers: `Ring` (default), `OpenSSL`, `Btls` (BoringSSL). |
-
-## `no-std` and POSIX Compatibility
-
-The crate relies on `alloc` and `core` abstractions for data structures, allowing underlying cryptographic core functions to operate in `no-std` target environments. OS entropy is sourced via system calls (`getrandom`/`getentropy`) or NAPI host environment bindings.
+| **Asymmetric Keys** | `KeyObject`, `createPublicKey`, `createPrivateKey`, `createSecretKey` | Key representation and creation. | Planned / Native platform delegation | *Planned* | Delegated to Node.js `node:crypto` built-in. |
+| **Random Generation** | `randomBytes`, `randomFill`, `randomFillSync`, `randomInt`, `randomUUID`, `randomUUIDv7` | Cryptographic PRNG functions. | Native platform delegation / `rand` crate | *Planned* | Sourced via system entropy or Node.js runtime. |
+| **Cipher & Decipher** | `Cipheriv`, `Decipheriv`, `createCipheriv`, `createDecipheriv` | Symmetric encryption / decryption. | Planned | *Planned* | OpenSSL / Rust Crypto AEAD ciphers. |
+| **Sign & Verify** | `Sign`, `Verify`, `createSign`, `createVerify`, `sign`, `verify` | Digital signature generation & verification. | Planned | *Planned* | Digital signature algorithms. |
