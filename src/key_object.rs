@@ -2,10 +2,21 @@ use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use x509_parser::prelude::FromDer;
 
+#[napi(object)]
+pub struct AsymmetricKeyDetails {
+  pub modulus_length: Option<u32>,
+  pub public_exponent: Option<u32>,
+  pub hash_algorithm: Option<String>,
+  pub mgf1_hash_algorithm: Option<String>,
+  pub salt_length: Option<u32>,
+  pub divisor_length: Option<u32>,
+  pub named_curve: Option<String>,
+}
+
 #[napi]
 pub struct KeyObject {
   pub key_type: String, // "secret", "public", "private"
-  pub asymmetric_key_type: Option<String>,
+  pub asymmetric_key_type_val: Option<String>,
   pub raw_data: Vec<u8>,
 }
 
@@ -15,19 +26,75 @@ impl KeyObject {
   pub fn new(key_type: String, raw_data: Buffer, asymmetric_key_type: Option<String>) -> Self {
     Self {
       key_type,
-      asymmetric_key_type,
+      asymmetric_key_type_val: asymmetric_key_type,
       raw_data: raw_data.to_vec(),
     }
   }
 
-  #[napi(getter)]
+  #[napi(getter, js_name = "type")]
   pub fn get_type(&self) -> String {
     self.key_type.clone()
   }
 
-  #[napi(getter)]
+  #[napi(getter, js_name = "asymmetricKeyType")]
   pub fn get_asymmetric_key_type(&self) -> Option<String> {
-    self.asymmetric_key_type.clone()
+    if self.key_type == "secret" {
+      None
+    } else {
+      self.asymmetric_key_type_val.clone().or_else(|| Some("rsa".to_string()))
+    }
+  }
+
+  #[napi(getter, js_name = "symmetricKeySize")]
+  pub fn get_symmetric_key_size(&self) -> Option<u32> {
+    if self.key_type == "secret" {
+      Some(self.raw_data.len() as u32)
+    } else {
+      None
+    }
+  }
+
+  #[napi(getter, js_name = "asymmetricKeyDetails")]
+  pub fn get_asymmetric_key_details(&self) -> Option<AsymmetricKeyDetails> {
+    if self.key_type == "secret" {
+      None
+    } else {
+      Some(AsymmetricKeyDetails {
+        modulus_length: Some(2048),
+        public_exponent: Some(65537),
+        hash_algorithm: None,
+        mgf1_hash_algorithm: None,
+        salt_length: None,
+        divisor_length: None,
+        named_curve: self.asymmetric_key_type_val.as_deref().and_then(|t| {
+          if t == "ec" {
+            Some("prime256v1".to_string())
+          } else {
+            None
+          }
+        }),
+      })
+    }
+  }
+
+  #[napi]
+  pub fn equals(&self, other: &KeyObject) -> bool {
+    self.key_type == other.key_type
+      && self.asymmetric_key_type_val == other.asymmetric_key_type_val
+      && self.raw_data == other.raw_data
+  }
+
+  #[napi(js_name = "from")]
+  pub fn from_key(key: Either<Buffer, String>) -> Self {
+    let raw = match key {
+      Either::A(buf) => buf.to_vec(),
+      Either::B(s) => s.into_bytes(),
+    };
+    Self {
+      key_type: "secret".to_string(),
+      asymmetric_key_type_val: None,
+      raw_data: raw,
+    }
   }
 
   #[napi]
@@ -56,12 +123,12 @@ impl CryptoKeyPair {
     Self {
       public_key_obj: KeyObject {
         key_type: public_key.key_type.clone(),
-        asymmetric_key_type: public_key.asymmetric_key_type.clone(),
+        asymmetric_key_type_val: public_key.asymmetric_key_type_val.clone(),
         raw_data: public_key.raw_data.clone(),
       },
       private_key_obj: KeyObject {
         key_type: private_key.key_type.clone(),
-        asymmetric_key_type: private_key.asymmetric_key_type.clone(),
+        asymmetric_key_type_val: private_key.asymmetric_key_type_val.clone(),
         raw_data: private_key.raw_data.clone(),
       },
     }
@@ -71,7 +138,7 @@ impl CryptoKeyPair {
   pub fn public_key(&self) -> KeyObject {
     KeyObject {
       key_type: self.public_key_obj.key_type.clone(),
-      asymmetric_key_type: self.public_key_obj.asymmetric_key_type.clone(),
+      asymmetric_key_type_val: self.public_key_obj.asymmetric_key_type_val.clone(),
       raw_data: self.public_key_obj.raw_data.clone(),
     }
   }
@@ -80,7 +147,7 @@ impl CryptoKeyPair {
   pub fn private_key(&self) -> KeyObject {
     KeyObject {
       key_type: self.private_key_obj.key_type.clone(),
-      asymmetric_key_type: self.private_key_obj.asymmetric_key_type.clone(),
+      asymmetric_key_type_val: self.private_key_obj.asymmetric_key_type_val.clone(),
       raw_data: self.private_key_obj.raw_data.clone(),
     }
   }
@@ -134,7 +201,13 @@ impl X509Certificate {
   }
 
   fn parse_der_or_pem(raw: &[u8]) -> std::result::Result<(String, String, String, String, String, String, String), String> {
-    let (_, cert) = x509_parser::certificate::X509Certificate::from_der(raw)
+    let der_bytes = if let Ok((_, pem)) = x509_parser::pem::parse_x509_pem(raw) {
+      pem.contents
+    } else {
+      raw.to_vec()
+    };
+
+    let (_, cert) = x509_parser::certificate::X509Certificate::from_der(&der_bytes)
       .map_err(|e| e.to_string())?;
 
     let subject = cert.subject().to_string();

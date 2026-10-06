@@ -49,11 +49,15 @@ export declare class Hmac {
 
 export declare class KeyObject {
   keyType: string;
-  asymmetricKeyType?: string;
+  asymmetricKeyTypeVal?: string;
   rawData: Array<number>;
   constructor(keyType: string, rawData: Buffer, asymmetricKeyType?: string | undefined | null);
   get type(): string;
   get asymmetricKeyType(): string | null;
+  get symmetricKeySize(): number | null;
+  get asymmetricKeyDetails(): AsymmetricKeyDetails | null;
+  equals(other: KeyObject): boolean;
+  static from(key: Buffer | string): KeyObject;
   export(format?: string | undefined | null): Buffer | string;
 }
 
@@ -121,6 +125,16 @@ export interface Argon2Parameters {
 }
 
 export declare function argon2Sync(algorithm: string, parameters: Argon2Parameters): Buffer;
+
+export interface AsymmetricKeyDetails {
+  modulusLength?: number;
+  publicExponent?: number;
+  hashAlgorithm?: string;
+  mgf1HashAlgorithm?: string;
+  saltLength?: number;
+  divisorLength?: number;
+  namedCurve?: string;
+}
 
 export declare function createDiffieHellman(
   prime: Buffer | number,

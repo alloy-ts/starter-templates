@@ -11,7 +11,7 @@ pub fn parse_pkcs8(key_pem: Either<Buffer, String>) -> Result<KeyObject> {
 
   Ok(KeyObject {
     key_type: "private".to_string(),
-    asymmetric_key_type: Some("rsa".to_string()),
+    asymmetric_key_type_val: Some("rsa".to_string()),
     raw_data: raw,
   })
 }
