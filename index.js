@@ -20,7 +20,14 @@ function loadBinding() {
 
 const nativeBinding = loadBinding();
 
+if (nativeBinding.Certificate) {
+  nativeBinding.Certificate.exportChallenge = nativeBinding.exportChallengeSpkac;
+  nativeBinding.Certificate.exportPublicKey = nativeBinding.exportPublicKeySpkac;
+  nativeBinding.Certificate.verifySpkac = nativeBinding.verifySpkacData;
+}
+
 export const {
+  Certificate,
   CryptoKeyPair,
   ECDH,
   Ecdh,
@@ -52,6 +59,8 @@ export const {
   decryptAead,
   encapsulate,
   encryptAead,
+  exportChallengeSpkac,
+  exportPublicKeySpkac,
   generateKeyPairSync,
   getHashes,
   hash,
@@ -77,6 +86,7 @@ export const {
   scryptSync,
   sign,
   verify,
+  verifySpkacData,
 } = nativeBinding;
 
 export default nativeBinding;

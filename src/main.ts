@@ -1,6 +1,7 @@
 import binding from "../index.js";
 
 export const {
+  Certificate,
   CryptoKeyPair,
   Ecdh,
   Hash,
@@ -28,6 +29,8 @@ export const {
   decryptAead,
   encapsulate,
   encryptAead,
+  exportChallengeSpkac,
+  exportPublicKeySpkac,
   generateKeyPairSync,
   getHashes,
   hash,
@@ -51,7 +54,14 @@ export const {
   scryptSync,
   sign,
   verify,
+  verifySpkacData,
 } = binding;
+
+if (Certificate) {
+  (Certificate as any).exportChallenge = exportChallengeSpkac;
+  (Certificate as any).exportPublicKey = exportPublicKeySpkac;
+  (Certificate as any).verifySpkac = verifySpkacData;
+}
 
 export const ECDH = binding.Ecdh;
 export const createECDH = binding.createEcdh;

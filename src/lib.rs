@@ -45,3 +45,6 @@ pub mod scrypt;
 
 #[path = "pkcs8.rs"]
 pub mod pkcs8;
+
+#[path = "certificate.rs"]
+pub mod certificate;
