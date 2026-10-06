@@ -13,6 +13,9 @@ pub mod key_object;
 #[path = "rand.rs"]
 pub mod rand;
 
+#[path = "random.rs"]
+pub mod random;
+
 #[path = "aead.rs"]
 pub mod aead;
 
